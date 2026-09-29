@@ -1,0 +1,53 @@
+# docker-compose.test.yml — isolated test environment with real PostgreSQL
+# Usage: docker compose -f docker-compose.test.yml run --rm backend-test
+
+services:
+  postgres_test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ticket_test
+      POSTGRES_USER: ticket
+      POSTGRES_PASSWORD: ticket
+    tmpfs:
+      - /var/lib/postgresql/data   # in-memory for speed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticket -d ticket_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  redis_test:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  backend_test:
+    build:
+      context: .
+      dockerfile: infra/docker/backend.Dockerfile
+    command: >
+      sh -c "
+        python manage.py migrate --noinput &&
+        pytest ${PYTEST_ARGS:-} --tb=short -x
+      "
+    environment:
+      DATABASE_URL: postgresql://ticket:ticket@postgres_test:5432/ticket_test
+      REDIS_URL: redis://redis_test:6379/0
+      CELERY_BROKER_URL: redis://redis_test:6379/0
+      CELERY_RESULT_BACKEND: redis://redis_test:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: test-secret-key-not-for-production
+      ALLOWED_HOSTS: "*"
+      PAYMENT_PROVIDER: mock
+      STRIPE_ENABLED: "False"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres_test:
+        condition: service_healthy
+      redis_test:
+        condition: service_healthy

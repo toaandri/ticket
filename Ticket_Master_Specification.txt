@@ -191,3 +191,95 @@ At each phase output: files changed; architecture choices; migrations; tests run
 [ ] README distinguishes implemented features from future plans.
 
 END OF MASTER SPECIFICATION
+
+======================================================================
+IMPLEMENTATION LOG — AUTO-GENERATED, DO NOT EDIT MANUALLY
+======================================================================
+
+--- SESSION 2024-07 ---
+
+PHASE 0 — SCAFFOLD : COMPLETED ✅
+  Tous les fichiers d'infrastructure créés. Aucun code applicatif encore.
+
+  Fichiers créés / écrits :
+    backend/pyproject.toml          Django 5.0.6, DRF 3.15.2, Celery 5.4, Channels 4.1, psycopg 3.1.19, pytest, Ruff
+    backend/manage.py               Entrypoint Django
+    backend/config/settings.py      Settings complets via env vars; AUTH_USER_MODEL="accounts.User" avant migration
+    backend/config/urls.py          /api/health/ + /admin/ + OpenAPI + /api/v1/
+    backend/config/api_urls.py      Routeur API v1 (vide, rempli phase par phase)
+    backend/config/asgi.py          Channels ASGI HTTP + WebSocket
+    backend/config/wsgi.py          WSGI fallback
+    backend/config/celery.py        Celery app, autodiscover
+    backend/config/__init__.py      Import celery_app au démarrage Django
+    backend/config/exceptions.py    Enveloppe erreur {code, message, details, request_id}
+    backend/config/health.py        GET /api/health/ — liveness probe Docker
+    backend/tests/conftest.py       Fixtures pytest : api_client, auth_client
+    backend/tests/factories.py      Stubs Factory Boy (à remplir par phase)
+    docker-compose.yml              postgres, redis, backend (uvicorn), celery_worker, celery_beat, web, mailpit
+    docker-compose.test.yml         Env test isolé (tmpfs postgres + redis)
+    infra/docker/backend.Dockerfile Multi-stage Python 3.12, non-root
+    infra/docker/web.Dockerfile     Node 20 Vite dev server
+    infra/docker/backend-entrypoint.sh
+    .env.example                    Toutes les variables documentées, aucun secret committé
+    Makefile                        setup, up, down, migrate, seed, test, lint, format, schema, concurrency-test
+    .github/workflows/ci.yml        backend-lint, backend-test (PostgreSQL service), schema-check, web, mobile, secret-scan
+    web/package.json                React 18.3 + Vite 5 + TanStack Query v5 + Zod + Tailwind + Vitest
+    web/vite.config.ts              Proxy /api -> backend
+    web/tsconfig.json               TypeScript strict
+    web/tsconfig.node.json
+    web/tailwind.config.js
+    web/postcss.config.js
+    web/src/App.tsx                 Skeleton QueryClientProvider + RouterProvider
+    web/src/main.tsx
+    web/src/index.css
+    web/src/test/setup.ts           Vitest + Testing Library setup
+    mobile/package.json             Expo 51 + Expo Router 3 + expo-camera + expo-secure-store
+    mobile/app.json                 Config Expo (Android + iOS)
+    mobile/tsconfig.json            TypeScript strict
+    mobile/app/_layout.tsx          Skeleton Expo Router
+    mobile/app/index.tsx
+    mobile/src/main.tsx
+    packages/api-client/package.json  openapi-typescript stub
+    docs/implementation-plan.md     Plan phasé 0->14 avec checklists d'acceptance
+    docs/progress.md                Log de progrès détaillé
+
+  Décisions d'architecture prises :
+    - AUTH_USER_MODEL = "accounts.User" (défini avant toute migration — critique)
+    - JWT simplejwt : access 15min + refresh 7j (blacklist activée) pour mobile
+    - Session+CSRF supporté aussi pour browser
+    - Money : integer minor units + ISO 4217 (ex: 1000 = 10.00 EUR)
+    - ASGI : Django Channels 4.1 + channels-redis
+    - Erreurs API : {code, message, details, request_id} uniforme
+    - ADRs à rédiger : ADR-001 auth, ADR-002 money, ADR-003 concurrency, ADR-004 payment, ADR-005 Expo
+
+  Versions pinnées :
+    Python 3.12 | Django 5.0.6 | DRF 3.15.2 | psycopg 3.1.19 | Celery 5.4.0
+    Channels 4.1.0 | simplejwt 5.3.1 | React 18.3.1 | Vite 5.3.1
+    TanStack Query 5.40.0 | Tailwind 3.4.4 | Expo 51.0.14 | React Native 0.74.2
+    PostgreSQL 16 | Redis 7 | Node.js 20
+
+PHASE 1 — ACCOUNTS & TENANTS : NOT STARTED ⏳
+  À faire :
+    - apps/accounts/models.py       custom User (UUID PK, email unique normalisé, email_verified_at)
+    - apps/accounts/migrations/     0001_initial (DOIT être la 1ère migration du projet)
+    - apps/accounts/services.py     register, verify_email, change_password, request_password_reset
+    - apps/accounts/serializers.py  register, login, profile
+    - apps/accounts/views.py        POST register/login/logout/refresh/password-reset/email-verify; GET/PATCH me
+    - apps/accounts/urls.py
+    - apps/organizations/models.py  Organization, Membership (OWNER/MANAGER/EDITOR/FINANCE/SCANNER), Invitation, EventStaffAssignment
+    - apps/organizations/migrations/
+    - apps/organizations/services.py  create_org, invite_member, accept_invitation, update_role
+    - apps/organizations/serializers.py
+    - apps/organizations/views.py
+    - apps/organizations/urls.py
+    - apps/audit/models.py          AuditLog append-only
+    - docs/security/role-matrix.md  Matrice permissions par rôle
+    Gate tests :
+      [ ] manage.py migrate propre avec custom User
+      [ ] POST /api/v1/auth/register/ → JWT pair
+      [ ] POST /api/v1/auth/login/ → tokens
+      [ ] GET /api/v1/me/ → profil authentifié
+      [ ] Org A member ne peut pas lire les ressources de Org B
+      [ ] Scanner ne peut pas accéder aux endpoints finance
+
+END OF IMPLEMENTATION LOG

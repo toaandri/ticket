@@ -1,0 +1,97 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ticket-backend"
+version = "0.1.0"
+description = "Ticket — Event management and ticketing platform backend"
+requires-python = ">=3.12"
+dependencies = [
+    "Django==5.0.6",
+    "djangorestframework==3.15.2",
+    "django-filter==24.2",
+    "drf-spectacular==0.27.2",
+    "psycopg[binary]==3.1.19",
+    "django-redis==5.4.0",
+    "redis==5.0.7",
+    "celery==5.4.0",
+    "django-celery-beat==2.6.0",
+    "channels==4.1.0",
+    "channels-redis==4.2.0",
+    "djangorestframework-simplejwt==5.3.1",
+    "django-cors-headers==4.4.0",
+    "Pillow==10.4.0",
+    "python-decouple==3.8",
+    "qrcode[pil]==7.4.2",
+    "reportlab==4.2.2",
+    "Faker==25.9.2",
+    "dj-database-url==2.2.0",
+    "whitenoise==6.7.0",
+    "structlog==24.2.0",
+    "django-extensions==3.2.3",
+]
+
+[project.optional-dependencies]
+stripe = [
+    "stripe==10.5.0",
+]
+dev = [
+    "pytest==8.2.2",
+    "pytest-django==4.8.0",
+    "pytest-asyncio==0.23.7",
+    "pytest-xdist==3.5.0",
+    "factory-boy==3.3.0",
+    "coverage==7.5.4",
+    "ruff==0.5.2",
+    "mypy==1.10.1",
+    "django-stubs==5.0.2",
+    "djangorestframework-stubs==3.15.0",
+]
+
+[tool.ruff]
+line-length = 119
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["tests.py", "test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--reuse-db",
+    "-v",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["apps"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 70
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+ignore_missing_imports = true
+strict = false
+
+[tool.django-stubs]
+django_settings_module = "config.settings"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["apps*", "config*"]
