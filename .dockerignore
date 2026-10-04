@@ -1,0 +1,14 @@
+.git
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.expo
+**/dist
+**/test-results
+**/playwright-report
+**/.coverage
+**/*.tsbuildinfo
+.env
+**/.env

@@ -42,6 +42,7 @@ def prepare_payment(*, actor, order_id, key, provider="MOCK", scenario="success"
         return existing, False
     if (
         order.status not in ["PENDING", "PAYMENT_PROCESSING"]
+        or event.organization.status != "ACTIVE"
         or event.status != "PUBLISHED"
         or reservation.status != "ACTIVE"
         or timezone.now() >= order.expires_at
@@ -59,6 +60,7 @@ def prepare_payment(*, actor, order_id, key, provider="MOCK", scenario="success"
         provider=provider,
         idempotency_key=key,
         fingerprint=digest,
+        scenario=scenario,
         amount_minor=order.total_minor,
         currency=order.currency,
     )
@@ -71,9 +73,13 @@ def initiate_payment(*, actor, order_id, key, provider="MOCK", scenario="success
     payment, created = prepare_payment(actor=actor, order_id=order_id, key=key, provider=provider, scenario=scenario)
     if not created and payment.provider_payment_id:
         return payment
+    return resume_payment(payment)
+
+
+def resume_payment(payment):
     # Remote calls are deliberately outside transactions; provider idempotency
     # is the payment UUID, so a crash before persistence can be retried safely.
-    result = provider_for(provider).create_payment(payment, scenario)
+    result = provider_for(payment.provider).create_payment(payment, payment.scenario)
     with transaction.atomic():
         Event.objects.select_for_update().get(pk=payment.order.event_id)
         current = PaymentAttempt.objects.select_for_update().get(pk=payment.pk)
@@ -131,6 +137,7 @@ def process_payment_event(*, payment_id, provider_event_id, status, amount, curr
         if (
             reservation.status != "ACTIVE"
             or timezone.now() >= order.expires_at
+            or event.organization.status != "ACTIVE"
             or event.status != "PUBLISHED"
             or order.status not in ["PENDING", "PAYMENT_PROCESSING"]
         ):
@@ -273,6 +280,8 @@ def complete_refund(refund):
             # Resale is enabled only before the event and only if still published.
             if event.status == "PUBLISHED" and timezone.now() < event.start_at:
                 bucket = InventoryBucket.objects.select_for_update().get(ticket_type=ticket.ticket_type)
+                ticket.inventory_released = True
+                ticket.save(update_fields=["inventory_released"])
                 bucket.sold_count -= 1
                 bucket.version += 1
                 bucket.save()
@@ -308,17 +317,39 @@ def refund_order(**kwargs):
 
 
 def reconcile_payments(limit=100):
+    import logging
+    from datetime import timedelta
+
+    from rest_framework.exceptions import APIException
+
+    logger = logging.getLogger(__name__)
+    for payment in (
+        PaymentAttempt.objects.filter(status="CREATED", created_at__lt=timezone.now() - timedelta(seconds=30))
+        .select_related("order__event")
+        .order_by("created_at")[:limit]
+    ):
+        try:
+            resume_payment(payment)
+        except APIException:
+            logger.warning("Payment creation retry deferred: %s", payment.pk)
     for payment in PaymentAttempt.objects.filter(status="PENDING").order_by("created_at")[:limit]:
-        outcome = provider_for(payment.provider).fetch_status(payment)
-        if outcome in ["SUCCEEDED", "FAILED"]:
-            process_payment_event(
-                payment_id=payment.pk,
-                provider_event_id=f"reconcile:{payment.pk}:{outcome}",
-                status=outcome,
-                amount=payment.amount_minor,
-                currency=payment.currency,
-            )
+        try:
+            outcome = provider_for(payment.provider).fetch_status(payment)
+            if outcome in ["SUCCEEDED", "FAILED"]:
+                process_payment_event(
+                    payment_id=payment.pk,
+                    provider_event_id=f"reconcile:{payment.pk}:{outcome}",
+                    status=outcome,
+                    amount=payment.amount_minor,
+                    currency=payment.currency,
+                    payment_intent_id=payment.payment_intent_id,
+                )
+        except APIException:
+            logger.warning("Payment status retry deferred: %s", payment.pk)
     for refund in (
         Refund.objects.filter(status="PENDING").select_related("payment", "order").order_by("created_at")[:limit]
     ):
-        complete_refund(refund)
+        try:
+            complete_refund(refund)
+        except APIException:
+            logger.warning("Refund retry deferred: %s", refund.pk)

@@ -46,12 +46,12 @@ def release_locked(reservation, status="EXPIRED"):
     )
 
 
-def expire_event_locked(event):
+def expire_event_locked(event, batch_size=100):
     changed = False
     for reservation in (
         Reservation.objects.select_for_update()
         .filter(event=event, status="ACTIVE", expires_at__lte=timezone.now())
-        .order_by("id")
+        .order_by("id")[:batch_size]
     ):
         release_locked(reservation)
         changed = True
@@ -73,7 +73,12 @@ def create_hold(*, actor, event_id, items, key):
         return existing
     event = get_object_or_404(Event.objects.select_for_update(), pk=event_id)
     now = timezone.now()
-    if event.status != "PUBLISHED" or not event.sales_start_at <= now < event.sales_end_at or now >= event.start_at:
+    if (
+        event.organization.status != "ACTIVE"
+        or event.status != "PUBLISHED"
+        or not event.sales_start_at <= now < event.sales_end_at
+        or now >= event.start_at
+    ):
         raise Conflict("Ticket sales are closed for this event.")
     expire_event_locked(event)
     if not items or len(items) > 20:

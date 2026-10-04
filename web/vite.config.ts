@@ -7,14 +7,17 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    fs: { allow: ['..'] },
     proxy: {
+      '/ws': { target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000', ws: true },
       '/api': {
         target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000',
-        changeOrigin: true,
+        changeOrigin: false,
       },
     },
   },
   test: {
+    include: ['src/**/*.test.{ts,tsx}'],
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],

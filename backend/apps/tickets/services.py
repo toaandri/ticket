@@ -13,7 +13,7 @@ from .models import Ticket
 
 def ticket_secret(ticket):
     # A separate purpose/key derivation avoids storing recoverable raw QR secrets.
-    key = hmac.digest(settings.SECRET_KEY.encode(), b"ticket-qr-v1", "sha256")
+    key = hmac.digest(settings.TICKET_SIGNING_KEY.encode(), b"ticket-qr-v1", "sha256")
     value = hmac.digest(key, f"{ticket.pk}:{ticket.version}".encode(), "sha256")
     return base64.urlsafe_b64encode(value).decode().rstrip("=")
 

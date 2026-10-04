@@ -63,7 +63,7 @@ class Order(Entity):
         constraints: ClassVar[list] = [
             models.UniqueConstraint(fields=["user", "idempotency_key"], name="unique_user_order_key"),
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     total_minor=models.F("subtotal_minor")
                     - models.F("discount_minor")
                     + models.F("fees_minor")
@@ -72,7 +72,7 @@ class Order(Entity):
                 name="order_balanced_money",
             ),
             models.CheckConstraint(
-                check=models.Q(discount_minor__lte=models.F("subtotal_minor")), name="order_discount_bound"
+                condition=models.Q(discount_minor__lte=models.F("subtotal_minor")), name="order_discount_bound"
             ),
         ]
         indexes: ClassVar[list] = [
@@ -105,9 +105,9 @@ class OrderItem(Entity):
 
     class Meta:
         constraints: ClassVar[list] = [
-            models.CheckConstraint(check=models.Q(quantity__gt=0), name="order_item_quantity_positive"),
+            models.CheckConstraint(condition=models.Q(quantity__gt=0), name="order_item_quantity_positive"),
             models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     total_minor=models.F("quantity") * models.F("unit_price_minor") - models.F("discount_minor")
                 ),
                 name="order_item_balanced_money",

@@ -1,4 +1,5 @@
 import uuid
+from typing import ClassVar
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
@@ -37,7 +38,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ()
+    REQUIRED_FIELDS: ClassVar[list[str]] = []
     objects = UserManager()
 
     class Meta:

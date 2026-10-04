@@ -210,12 +210,14 @@ def test_two_buyers_one_seat_race(inventory_demo):
     seat = event.seats.first()
     results = parallel_requests(
         users,
-        lambda user: create_hold(
-            actor=user,
-            event_id=event.pk,
-            key="race",
-            items=[{"ticket_type_id": str(assigned.pk), "event_seat_id": str(seat.pk), "quantity": 1}],
-        ).pk,
+        lambda user: (
+            create_hold(
+                actor=user,
+                event_id=event.pk,
+                key="race",
+                items=[{"ticket_type_id": str(assigned.pk), "event_seat_id": str(seat.pk), "quantity": 1}],
+            ).pk
+        ),
         2,
     )
     assert sum(result is not None for result in results) == 1

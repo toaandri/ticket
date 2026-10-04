@@ -1,160 +1,115 @@
 # Ticket
 
-A portfolio-grade, open-source event management and ticketing platform built as a single GitHub monorepo.
+An event ticketing demo with general admission, numbered seats, a team workspace and a dedicated Expo attendee/scanner app. Orders, tickets and admission all use the same PostgreSQL backend. Transactions are simulated; Stripe TEST is optional.
 
-## Project Status
+![Discovery on the running web application](docs/screenshots/discovery-desktop.png)
 
-**Accounts and organization workspaces implemented; ticketing development remains in progress.**
+## Run locally
 
-Implemented:
-- UUID accounts, normalized unique email, password hashing and validation.
-- JWT login, refresh rotation, logout and password-change session revocation.
-- Email verification and password reset via local mail delivery.
-- Organization creation and tenant-scoped discovery; verified staff invitations and role restrictions.
-- Append-only application audit records for organization and staff changes.
-- Responsive web account/organization workspace and a native Expo account workspace.
-- PostgreSQL integration tests, web interaction tests, dependency lockfiles and validated OpenAPI snapshot.
+Requirements: Docker with Compose v2, Python 3 for environment setup, Node.js 24 for mobile development. No payment, email or cloud account is needed.
 
-Not yet implemented: event/venue management, seat inventory, holds, orders, mock payments, QR tickets, check-in, refunds, promotions, analytics, notifications/outbox and deterministic demo seed. Optional Stripe remains test-only and is not implemented.
-
-This is a portfolio demo under development. No real payments are processed. Mobile type and component tests do not replace device/emulator verification.
-
-## Architecture
-
-```
-ticket/
-├── backend/          # Django + DRF + PostgreSQL + Redis + Celery
-├── web/              # React + TypeScript + Vite + TanStack Query + Tailwind
-├── mobile/           # React Native + Expo + TypeScript
-├── packages/api-client/  # Shared OpenAPI-generated TypeScript client
-├── docs/             # Product, architecture, ADRs, database, API, security, runbooks, testing
-├── infra/            # Dockerfiles, scripts
-└── .github/workflows/# CI/CD
-```
-
-**Tech Stack**
-- **Backend**: Python, Django, Django REST Framework, PostgreSQL, Redis, Celery, Django Channels, pytest, Ruff
-- **Web**: React, TypeScript, Vite, React Router, TanStack Query, React Hook Form + Zod, Tailwind CSS
-- **Mobile**: React Native, Expo, TypeScript, Expo Router
-- **Infrastructure**: Docker Compose, GitHub Actions
-
-## Quick Start
-
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 20+ (for web/mobile development)
-- Python 3.12+ (for backend development)
-- Make
-
-### Development Setup
-
-```bash
-# Clone and enter repo
+```sh
 git clone https://github.com/toaandri/ticket.git
 cd ticket
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your settings
-
-# Start all services
-make up
-
-# Run migrations
-make migrate
-
-# Seed/demo fixtures remain under development; register a new account in the web UI.
-
-# Access applications
-# Web:      http://localhost:5173
-# API:      http://localhost:8000/api/v1/
-# Admin:    http://localhost:8000/admin/
-# Mailpit:  http://localhost:8025
+make setup       # creates .env with independent random signing keys
+make up          # builds, migrates, then starts API, web, workers and Mailpit
+make seed        # prints a generated password for synthetic demo accounts
 ```
 
-### Accounts
+| Service | URL |
+| --- | --- |
+| Web | http://localhost:5173 |
+| API | http://localhost:8000/api/v1/ |
+| OpenAPI / Swagger | http://localhost:8000/api/schema/swagger-ui/ |
+| Local email inbox | http://localhost:8025 |
+| PostgreSQL / Redis on the host | localhost:5433 / localhost:6380 |
 
-The deterministic seed is not implemented yet; `make seed` is a future task. Create an account through the web sign-up screen or `POST /api/v1/auth/register/`. There are no seeded demo credentials at this stage.
+Sign in as `demo-owner@ticket.example`, `demo-manager@ticket.example`, `demo-editor@ticket.example`, `demo-finance@ticket.example`, `demo-scanner@ticket.example` or `demo-attendee@ticket.example`, using the password printed by `make seed`. These are verified synthetic accounts; none is a platform administrator. Repeating the seed preserves accounts, passwords and transactions. A development-only reset creates another dataset while retaining financial and audit history:
 
-### Mobile development
+```sh
+docker compose run --rm backend python manage.py seed_demo --reset-demo --confirm-reset
+```
 
-```bash
+Choose Garden Sessions, select general admission tickets, hold them, continue to checkout and pay in test mode. The wallet contains authorized QR and PDF downloads. On a numbered event, choose an exact seat. The hold lasts up to ten minutes and is never extended by checkout. Mock decline, pending, delayed and timeout scenarios are available only in development. Pending mock outcomes can be completed using the demo control; they are deliberately not auto-approved by a timer.
+
+The organizer workspace creates venues, numbered layouts, drafts and ticket types, publishes events, manages invitations and roles, assigns scanners, manages promotions, shows reports, exports protected CSV, refunds selected unused admissions and cancels events. Finance can read reports; Scanner sees assigned events without finance access. A platform administrator uses explicit moderation endpoints and has no implicit organization access.
+
+## Mobile
+
+```sh
 cd mobile
 npm ci
-# Physical device: use your development machine's LAN address.
+# Android emulator: http://10.0.2.2:8000/api/v1
+# iOS simulator: http://localhost:8000/api/v1
+# Phone: replace localhost with the computer's LAN address
 EXPO_PUBLIC_API_BASE_URL=http://192.168.1.10:8000/api/v1 npm start
 ```
 
-Android emulator defaults to `http://10.0.2.2:8000/api/v1`; iOS simulator defaults to localhost. The native app stores refresh tokens with Expo SecureStore. Web tokens stay in memory; reloading the web page requires signing in again. Use HTTPS outside local development.
+Use an Expo Go version compatible with SDK 57, or a local development build. On a phone, set the LAN hostname in root `.env` `ALLOWED_HOSTS` and the matching web origins in `CORS_ALLOWED_ORIGINS`, then restart the backend. Phone and computer must reach the same LAN. Open the Expo QR in Expo Go; the app has Discover, My tickets, Account and Scanner tabs. Native refresh credentials use SecureStore; access tokens remain in memory. Camera permissions are requested when scanning. Admission is online only. PDF downloads are authenticated, shared through the OS and removed from app cache afterward.
 
-## Key Features
+Mobile TypeScript, component tests and Android bundle compilation are automated. The device checklist in [testing](docs/testing/README.md) records hardware-only checks separately; bundle compilation does not prove camera or Keychain behavior on a physical device.
 
-### Implemented (Scaffold)
-- Complete monorepo structure
-- Docker Compose with PostgreSQL, Redis, backend, web, Celery worker/beat, Mailpit
-- GitHub Actions CI pipeline
-- Documentation structure with ADRs
-- Shared API client package
+## Implemented behavior
 
-### Planned (Per Specification)
-- **Multi-tenant organizations** with role-based access (Owner, Manager, Editor, Finance, Scanner)
-- **Venue management** with sections, seats, accessibility info, frozen layout versions
-- **Event management** (GA, assigned seating, mixed) with ticket types, pricing, quotas
-- **Reservation engine** with timed holds (default 10 min), atomic seat claims, GA buckets
-- **Orders & checkout** with immutable pricing snapshots, promotions, idempotency
-- **Mock payment provider** (success, decline, pending, timeout, delayed success, refunds)
-- **Optional Stripe Test Mode** (PaymentIntents, verified webhooks, no real transactions)
-- **QR tickets** with cryptographically secure secrets, PDF generation, wallet endpoints
-- **Atomic check-in** (online-only v1) with duplicate/revoked/invalid detection
-- **Real-time availability** via Django Channels (best-effort hints, API authoritative)
-- **Notifications** (email via Celery, in-app, templates for verification, tickets, reminders)
-- **Analytics** (sales, occupancy, check-in rates, CSV exports with formula injection protection)
-- **Audit trails** (append-only, privilege changes, refunds, scans, inventory adjustments)
-- **Deterministic demo seed** (≥3 orgs, ≥8 events, ≥2 venues, 4 role accounts, race-test fixtures)
+- UUID accounts, normalized unique emails, password reset, email verification and rotating JWT logout/revocation.
+- Organization permissions, email-bound expiring invitations, scanner event assignments and immutable audit records.
+- GENERAL, ASSIGNED and MIXED events; numbered and accessible seats; venue layouts frozen on publication.
+- Atomic holds, exclusive seat claims, database capacity checks, expiry, request fingerprints and idempotent retries.
+- Immutable integer money snapshots, exact promotion allocation, payment inbox replay protection, one ticket per paid admission and late-payment compensation.
+- Holder-scoped QR/PDF wallet, online atomic check-in, duplicate/foreign/revoked/closed rejection.
+- Full and partial unused-ticket test refunds, cancellation processing, inventory reconciliation, currency-aware metrics and safe CSV.
+- Durable email outbox, retry leases, dead letters, in-app notifications, reminders and post-commit availability hints.
+- Responsive English web interface, Expo app, OpenAPI-derived shared types and PostgreSQL integration tests.
 
-## Documentation
+Transfer, offline admission, real-money payments, image uploads and reserved-seat ticket reconfiguration after publication are intentionally disabled. The local Compose web service is a development server. There is no deployed public URL or production certification. See the [security review](docs/security/README.md), including the current upstream mobile dependency advisories, before exposing a deployment.
 
-| Doc | Description |
-|-----|-------------|
-| [Implementation Plan](docs/implementation-plan.md) | Phased tasks with acceptance checklists |
-| [Progress](docs/progress.md) | Completed work, blockers, next commands |
-| [Architecture ADRs](docs/adr/) | Architecture Decision Records |
-| [Database](docs/database/) | ERD, migrations, constraints, indexes |
-| [API](docs/api/) | OpenAPI spec, examples, errors, idempotency |
-| [Security](docs/security/) | Threat model, role matrix, privacy |
-| [Runbooks](docs/runbooks/) | Expiration, reconciliation, webhook replay, restore |
+## Architecture and stack
 
-## Testing
-
-```bash
-# Backend tests (requires PostgreSQL)
-make test
-
-# Frontend tests
-make web-test
-
-# Mobile tests
-make mobile-test
-
-# Concurrency/race tests
-make concurrency-test
+```mermaid
+flowchart LR
+  Web[React web] --> API[Django ASGI / DRF]
+  Mobile[Expo app] --> API
+  Web <-. availability hints .-> Channels[Channels / Redis]
+  API --> PG[(PostgreSQL 16)]
+  API --> Outbox[Transactional outbox]
+  Outbox --> Worker[Celery worker / beat]
+  Worker --> PG
+  Worker --> Mail[SMTP / Mailpit]
+  Worker --> Providers[Mock / optional Stripe TEST]
+  API --> Providers
 ```
 
-## Deployment (Example)
+Python 3.12, Django 5.2 LTS, DRF, psycopg 3, Channels, Celery; React 19, TypeScript, Vite, TanStack Query; Expo SDK 57 with its compatible React Native modules. Python requirements and npm lockfiles pin dependencies. [ADRs](docs/adr/README.md) explain coarse event locks, minor units, token storage, QR derivation and outbox delivery semantics.
 
-See [deployment runbook](docs/runbooks/deployment.md) for:
-- HTTPS, managed DB, Redis restrictions
-- Migrations, static/media handling
-- Worker scaling, observability
-- Stripe test webhook configuration
-- Backup/restore, health checks, rollback
+## Validation
 
-> **Warning**: Production deployment requires legal/security review. This is a portfolio demo, not a production payment processor.
+```sh
+make test
+make concurrency-test
+make lint
+make schema
+cd web && npm ci && npm run typecheck && npm test -- --run && npm run build
+cd ../mobile && npm ci && npm run typecheck && npm run lint && npm test
+npx expo export --platform android
+```
 
-## Contributing
+Browser journeys use a fresh synthetic database and a known development-only password:
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+```sh
+docker compose run --rm backend python manage.py seed_demo --password 'synthetic-demo-password-94!'
+cd web
+npx playwright install chromium
+DEMO_PASSWORD='synthetic-demo-password-94!' npx playwright test
+```
 
-## License
+This seed password option applies only on first creation of that dataset. Repeated E2E purchases accumulate persistent orders; use a disposable database for repeated runs. CI creates fresh PostgreSQL and Redis services, verifies migration/schema drift, runs race tests repeatedly, compiles both clients, runs real API browser journeys, scans secrets and reports dependency advisories. [Recorded checks](docs/testing/README.md) distinguish actual results from manual checks still needed.
 
-[MIT](LICENSE) — see LICENSE file for details.
+![Running organizer report](docs/screenshots/organizer-reports.png)
+
+![Expo app rendered on its web target](docs/screenshots/expo-web-discovery.png)
+
+The Expo screenshot is from the web target using the real API; it is not a physical-device capture.
+
+Screenshots show synthetic development data. Wallet screenshots mask admission QR codes. All event artwork is self-created CSS; no scraped artwork is used.
+
+See [API examples](docs/api/README.md), [ERD](docs/database/README.md), [operations](docs/runbooks/README.md), [contribution guide](CONTRIBUTING.md) and [MIT license](LICENSE).

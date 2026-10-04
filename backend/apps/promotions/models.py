@@ -22,12 +22,13 @@ class Promotion(Entity):
     class Meta:
         constraints: ClassVar[list] = [
             models.UniqueConstraint(fields=["organization", "code"], name="unique_promotion_code"),
-            models.CheckConstraint(check=models.Q(start_at__lt=models.F("end_at")), name="promotion_time_order"),
+            models.CheckConstraint(condition=models.Q(start_at__lt=models.F("end_at")), name="promotion_time_order"),
             models.CheckConstraint(
-                check=models.Q(kind="FIXED") | models.Q(kind="PERCENT", amount__lte=100), name="promotion_valid_amount"
+                condition=models.Q(kind="FIXED") | models.Q(kind="PERCENT", amount__lte=100),
+                name="promotion_valid_amount",
             ),
             models.CheckConstraint(
-                check=models.Q(usage_limit__gt=0, per_user_limit__gt=0), name="promotion_positive_limits"
+                condition=models.Q(usage_limit__gt=0, per_user_limit__gt=0), name="promotion_positive_limits"
             ),
         ]
 

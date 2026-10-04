@@ -4,10 +4,21 @@ from .models import Organization
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+
+    def get_role(self, obj) -> str:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return ""
+        membership = obj.memberships.filter(user=request.user).first()
+        return membership.role if membership else ""
+
     class Meta:
         model = Organization
         fields = (
             "id",
+            "status",
+            "role",
             "slug",
             "name",
             "owner",
@@ -17,6 +28,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "id",
             "owner",
             "created_at",
+            "status",
         )
 
 

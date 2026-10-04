@@ -99,6 +99,8 @@ def configure_ticket_type(*, actor, event_id, venue_section_id=None, **data):
 def publish_event(*, actor, event_id):
     event = get_object_or_404(Event.objects.select_for_update(), pk=event_id)
     require_role(actor, event.organization_id)
+    if event.organization.status != "ACTIVE":
+        raise Conflict("This organization is suspended.")
     if event.status == "PUBLISHED":
         return event
     if event.status != "DRAFT":
@@ -132,3 +134,66 @@ def publish_event(*, actor, event_id):
         entity_id=event.pk,
     )
     return event
+
+
+@transaction.atomic
+def cancel_event(*, actor, event_id, platform_override=False, reason=""):
+    from rest_framework.exceptions import PermissionDenied
+
+    from apps.notifications.services import enqueue
+    from apps.reservations.services import release_locked
+
+    from .realtime import availability_changed
+
+    event = get_object_or_404(Event.objects.select_for_update(), pk=event_id)
+    if platform_override:
+        if not actor.is_superuser:
+            raise PermissionDenied("Platform administrator required.")
+    else:
+        require_role(actor, event.organization_id, ("OWNER", "MANAGER"))
+    if event.status == "CANCELLED":
+        return event
+    if event.status == "COMPLETED":
+        raise Conflict("A completed event cannot be cancelled.")
+    event.status = "CANCELLED"
+    event.version += 1
+    event.save(update_fields=["status", "version"])
+    for reservation in event.reservations.select_for_update().filter(status="ACTIVE").order_by("id"):
+        release_locked(reservation, "CANCELLED")
+    for order in event.orders.filter(paid_at__isnull=False):
+        enqueue("event.cancelled", order.pk, key=f"cancelled:{order.pk}")
+    AuditLog.objects.create(
+        actor=actor,
+        organization_id=event.organization_id,
+        event=event,
+        action="event.cancelled",
+        entity_type="Event",
+        entity_id=event.pk,
+    )
+    availability_changed(event)
+    return event
+
+
+def refund_cancelled_events(limit=100):
+    from apps.orders.models import Order
+    from apps.payments.services import refund_order
+    from apps.tickets.models import Ticket
+
+    for order in (
+        Order.objects.filter(event__status="CANCELLED", status__in=["PAID", "PARTIALLY_REFUNDED"])
+        .select_related("event__organization__owner")
+        .order_by("created_at")[:limit]
+    ):
+        tickets = list(
+            Ticket.objects.filter(order_item__order=order, status="VALID", refund__isnull=True).values_list(
+                "id", flat=True
+            )
+        )
+        if tickets:
+            refund_order(
+                actor=order.event.organization.owner,
+                order_id=order.pk,
+                ticket_ids=tickets,
+                reason="Event cancellation",
+                key=f"cancel-event:{order.pk}",
+            )

@@ -31,7 +31,11 @@ class StripeWebhookView(APIView):
             "checkout.session.async_payment_succeeded",
             "checkout.session.async_payment_failed",
         ]:
-            session = event["data"]["object"]
+            session = event.get("data", {}).get("object") if isinstance(event.get("data"), dict) else None
+            if not isinstance(session, dict) or not all(key in session for key in ["id", "amount_total", "currency"]):
+                from rest_framework.exceptions import ValidationError
+
+                raise ValidationError("Invalid checkout session payload.")
             payment = get_object_or_404(PaymentAttempt, provider="STRIPE_TEST", provider_payment_id=session["id"])
             if session.get("client_reference_id") != str(payment.pk) or session.get("livemode") is not False:
                 from rest_framework.exceptions import PermissionDenied

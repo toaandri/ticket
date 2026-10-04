@@ -40,9 +40,9 @@ class ReservationItem(Entity):
 
     class Meta:
         constraints: ClassVar[list] = [
-            models.CheckConstraint(check=models.Q(quantity__gt=0), name="reservation_quantity_positive"),
+            models.CheckConstraint(condition=models.Q(quantity__gt=0), name="reservation_quantity_positive"),
             models.CheckConstraint(
-                check=models.Q(event_seat__isnull=True) | models.Q(quantity=1), name="assigned_quantity_one"
+                condition=models.Q(event_seat__isnull=True) | models.Q(quantity=1), name="assigned_quantity_one"
             ),
             models.UniqueConstraint(
                 fields=["reservation", "event_seat"],

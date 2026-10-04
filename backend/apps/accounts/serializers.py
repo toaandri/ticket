@@ -14,12 +14,16 @@ class ProfileSerializer(serializers.ModelSerializer):
             "display_name",
             "email_verified_at",
             "created_at",
+            "is_superuser",
+            "is_staff",
         )
         read_only_fields = (
             "id",
             "email",
             "email_verified_at",
             "created_at",
+            "is_superuser",
+            "is_staff",
         )
 
 

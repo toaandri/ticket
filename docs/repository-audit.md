@@ -1,3 +1,5 @@
+> Historical scaffold audit. The implementation and current verification are described in [progress.md](progress.md); the findings below describe the initial main revision, not the completed application.
+
 # Repository audit — 2026-10-04
 
 ## Scope and observed baseline

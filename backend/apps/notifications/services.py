@@ -45,7 +45,7 @@ def render_message(event):
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
             subject = "Reset your Ticket password"
-            body = f"Reset your password at {base}/account?{urlencode({'uid': uid, 'reset': token})}\n\nUID: {uid}\nToken: {token}"
+            body = f"Reset your password at {base}/account?{urlencode({'user_id': str(user.pk), 'reset': token})}\n\nUID: {uid}\nToken: {token}"
         return user, user.email, subject, body
     if event.event_type == "team.invite":
         invitation = Invitation.objects.select_related("organization").get(pk=event.aggregate_id)

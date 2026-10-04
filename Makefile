@@ -33,7 +33,7 @@ help:
 	@echo ""
 
 setup:
-	@if [ ! -f .env ]; then cp .env.example .env && echo ".env created — edit it before starting"; else echo ".env already exists"; fi
+	sh infra/scripts/setup.sh
 
 up:
 	$(COMPOSE) up --build -d
@@ -73,14 +73,14 @@ format:
 	$(BACKEND_RUN) ruff check --fix .
 
 schema:
-	$(BACKEND_RUN) python manage.py spectacular --color --file /app/../packages/api-client/generated/schema.yml
-	@echo "Schema written to packages/api-client/generated/schema.yml"
+	$(COMPOSE) run --rm -T --user "$$(id -u):$$(id -g)" -v "$$(pwd)/packages:/packages" backend python manage.py spectacular --validate --fail-on-warn --file /packages/api-client/generated/schema.yml
+	cd packages/api-client && npm ci && npm run generate
 
 concurrency-test:
-	$(COMPOSE_TEST) run --rm -e PYTEST_ARGS="-m concurrency -v" backend_test
+	$(COMPOSE_TEST) run --rm -e PYTEST_ARGS="tests/test_inventory.py tests/test_checkout.py -k "race or concurrent or scanners" -v" backend_test
 
 web-test:
-	cd web && npm test
+	cd web && npm test -- --run
 
 mobile-test:
 	cd mobile && npx jest
@@ -92,3 +92,11 @@ clean:
 	@echo "WARNING: This will delete all Docker volumes (database, media, etc.)"
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
 	$(COMPOSE) down -v
+
+demo: seed
+
+e2e:
+	cd web && npx playwright test
+
+reconcile:
+	$(BACKEND_RUN) python manage.py reconcile_inventory

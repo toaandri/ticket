@@ -17,8 +17,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ---------------------------------------------------------------------------
 # Core
 # ---------------------------------------------------------------------------
-SECRET_KEY: str = config("DJANGO_SECRET_KEY", default="change-me-in-production-use-a-long-random-string")  # type: ignore[assignment]
+SECRET_KEY: str = config("DJANGO_SECRET_KEY", default="change-me-development-only")  # type: ignore[assignment]
 DEBUG: bool = config("DEBUG", default=False, cast=bool)  # type: ignore[assignment]
+if not DEBUG and (len(SECRET_KEY) < 50 or SECRET_KEY.startswith("change-me")):
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured("Set a strong DJANGO_SECRET_KEY before running outside development.")
 ALLOWED_HOSTS: list[str] = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())  # type: ignore[assignment]
 
 # ---------------------------------------------------------------------------
@@ -139,7 +143,10 @@ USE_TZ = True
 # ---------------------------------------------------------------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "mediafiles"
@@ -253,13 +260,13 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS: list[str] = config(  # type: ignore[assignment]
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:5173,http://localhost:3000",
+    default="http://localhost:5173,http://localhost:8081",
     cast=Csv(),
 )
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS: list[str] = config(  # type: ignore[assignment]
     "CSRF_TRUSTED_ORIGINS",
-    default="http://localhost:5173,http://localhost:3000",
+    default="http://localhost:5173,http://localhost:8081",
     cast=Csv(),
 )
 
@@ -273,7 +280,13 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1/",
     "COMPONENT_SPLIT_REQUEST": True,
-    "SORT_OPERATIONS": False,
+    "SORT_OPERATIONS": True,
+    "ENUM_NAME_OVERRIDES": {
+        "MembershipRoleEnum": ["OWNER", "MANAGER", "EDITOR", "FINANCE", "SCANNER"],
+        "InvitedRoleEnum": ["MANAGER", "EDITOR", "FINANCE", "SCANNER"],
+        "TicketKindEnum": [("GENERAL", "General admission"), ("ASSIGNED", "Assigned seating")],
+        "PromotionKindEnum": [("PERCENT", "Percent"), ("FIXED", "Fixed minor units")],
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -299,9 +312,12 @@ STRIPE_PUBLISHABLE_KEY: str = config("STRIPE_PUBLISHABLE_KEY", default="")  # ty
 # ---------------------------------------------------------------------------
 # App settings
 # ---------------------------------------------------------------------------
-APP_BASE_URL: str = config("APP_BASE_URL", default="http://localhost:8000")  # type: ignore[assignment]
+APP_BASE_URL: str = config("APP_BASE_URL", default="http://localhost:5173")  # type: ignore[assignment]
 API_BASE_URL: str = config("API_BASE_URL", default="http://localhost:8000/api/v1")  # type: ignore[assignment]
 RESERVATION_HOLD_MINUTES: int = config("RESERVATION_HOLD_MINUTES", default=10, cast=int)  # type: ignore[assignment]
+TICKET_SIGNING_KEY: str = config("TICKET_SIGNING_KEY", default=SECRET_KEY)
+if not DEBUG and (len(TICKET_SIGNING_KEY) < 32 or TICKET_SIGNING_KEY.startswith("change-me")):
+    raise ImproperlyConfigured("Set a strong persistent TICKET_SIGNING_KEY outside development.")
 TICKET_QR_SECRET_BYTES: int = 32  # 256-bit entropy
 
 # ---------------------------------------------------------------------------

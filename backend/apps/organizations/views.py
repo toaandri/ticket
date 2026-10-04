@@ -30,7 +30,7 @@ class OrganizationListView(generics.ListCreateAPIView):
             raise ValidationError({"slug": "This organization slug is already taken."}) from exc
 
 
-class OrganizationDetailView(generics.RetrieveAPIView):
+class OrganizationDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = OrganizationSerializer
 
     def get_queryset(self):
@@ -38,6 +38,12 @@ class OrganizationDetailView(generics.RetrieveAPIView):
             return Organization.objects.none()
         # Scope before lookup: guessed UUIDs do not reveal another organization's existence.
         return Organization.objects.filter(memberships__user=self.request.user)
+
+    def perform_update(self, serializer):
+        from apps.common.domain import require_role
+
+        require_role(self.request.user, serializer.instance.pk, ("OWNER", "MANAGER"))
+        serializer.save()
 
 
 @extend_schema_view(post=extend_schema(responses={201: InvitationResultSerializer}))

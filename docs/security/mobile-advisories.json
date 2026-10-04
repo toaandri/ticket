@@ -1,0 +1,9 @@
+{
+  "review_before": "2026-11-01",
+  "upstream_advisories": [
+    "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+    "https://github.com/advisories/GHSA-vcc3-ghjq-m6fr",
+    "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+    "https://github.com/advisories/GHSA-w5hq-g745-h8pq"
+  ]
+}

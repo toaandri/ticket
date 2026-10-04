@@ -1,113 +1,15 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Organization, Tokens, User, getRefresh, request, saveRefresh } from '../src/api';
+import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import type { Paginated, TicketEvent } from '../../packages/api-client/src';
+import { money } from '../../packages/api-client/src';
+import { useSession } from '../src/session';
+import { Alert, Button, Input, Loading, Page, styles } from '../src/ui';
 
-export default function Index() {
-  const [user, setUser] = useState<User | null>(null);
-  const [register, setRegister] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
-  const [busy, setBusy] = useState(true);
-  const [error, setError] = useState('');
-
-  async function openWorkspace(tokens: Tokens) {
-    await saveRefresh(tokens.refresh);
-    const profile = await request<User>('/me/', {}, tokens.access);
-    const list = await request<{ results: Organization[] }>('/organizations/', {}, tokens.access);
-    setOrganizations(list.results); setUser(profile); setPassword('');
-  }
-  async function refreshSession() {
-    const refresh = await getRefresh();
-    if (!refresh) throw new Error('Please sign in again.');
-    const tokens = await request<Tokens>('/auth/refresh/', { method: 'POST', body: JSON.stringify({ refresh }) });
-    await saveRefresh(tokens.refresh);
-    return tokens;
-  }
-  useEffect(() => {
-    let active = true;
-    async function restore() {
-      try {
-        const refresh = await getRefresh();
-        if (refresh && active) {
-          const tokens = await request<Tokens>('/auth/refresh/', { method: 'POST', body: JSON.stringify({ refresh }) });
-          if (active) await openWorkspace(tokens);
-        }
-      } catch (err) { if (active) setError((err as Error).message); }
-      finally { if (active) setBusy(false); }
-    }
-    void restore();
-    return () => { active = false; };
-  }, []);
-
-  async function authenticate() {
-    if (!email.trim() || !password) { setError('Enter your email and password.'); return; }
-    setBusy(true); setError('');
-    try {
-      const tokens = await request<Tokens>(register ? '/auth/register/' : '/auth/login/', { method: 'POST',
-        body: JSON.stringify({ email, password, ...(register ? { display_name: displayName } : {}) }) });
-      await openWorkspace(tokens);
-    } catch (err) { setError((err as Error).message); }
-    finally { setBusy(false); }
-  }
-  async function createOrganization() {
-    if (!name.trim() || !slug.trim()) { setError('Enter a name and workspace slug.'); return; }
-    setBusy(true); setError('');
-    try {
-      const tokens = await refreshSession();
-      await request<Organization>('/organizations/', { method: 'POST', body: JSON.stringify({ name, slug }) }, tokens.access);
-      const list = await request<{ results: Organization[] }>('/organizations/', {}, tokens.access);
-      setOrganizations(list.results); setName(''); setSlug('');
-    } catch (err) { setError((err as Error).message); }
-    finally { setBusy(false); }
-  }
-  async function logout() {
-    setBusy(true); setError('');
-    try {
-      const tokens = await refreshSession();
-      await request<void>('/auth/logout/', { method: 'POST', body: JSON.stringify({ refresh: tokens.refresh }) }, tokens.access);
-    } catch (err) { setError(`Signed out locally. ${(err as Error).message}`); }
-    finally { await saveRefresh(null); setUser(null); setOrganizations([]); setBusy(false); }
-  }
-
-  return <SafeAreaView style={styles.safe}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
-    <Text style={styles.brand}>Ticket.</Text>
-    {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-    {busy && <ActivityIndicator accessibilityLabel="Loading workspace" color="#204d36" />}
-    {!user ? <View style={styles.card}>
-      <Text accessibilityRole="header" style={styles.title}>{register ? 'Create your account' : 'Welcome back'}</Text>
-      <Text style={styles.description}>A home for your event team.</Text>
-      {register && <><Text>Display name</Text><TextInput accessibilityLabel="Display name" style={styles.input} value={displayName} onChangeText={setDisplayName} autoComplete="name" maxLength={150} /></>}
-      <Text>Email</Text><TextInput accessibilityLabel="Email" style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-      <Text>Password</Text><TextInput accessibilityLabel="Password" style={styles.input} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete={register ? 'new-password' : 'current-password'} />
-      <Pressable accessibilityRole="button" disabled={busy} style={styles.button} onPress={() => void authenticate()}><Text style={styles.buttonText}>{register ? 'Create account' : 'Sign in'}</Text></Pressable>
-      <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setRegister(!register); setError(''); }}><Text style={styles.link}>{register ? 'Already have an account? Sign in' : 'New here? Create an account'}</Text></Pressable>
-    </View> : <>
-      <Text accessibilityRole="header" style={styles.title}>Hello, {user.display_name || user.email}.</Text>
-      <Text style={styles.description}>Your organizations</Text>
-      {!organizations.length && <Text>Create your first workspace below.</Text>}
-      {organizations.map(org => <View key={org.id} style={styles.organization}><Text style={styles.orgTitle}>{org.name}</Text><Text>{org.slug}</Text></View>)}
-      <View style={styles.card}><Text accessibilityRole="header" style={styles.orgTitle}>Create an organization</Text>
-        <Text>Organization name</Text><TextInput accessibilityLabel="Organization name" style={styles.input} value={name} onChangeText={setName} maxLength={200} />
-        <Text>Workspace slug</Text><TextInput accessibilityLabel="Workspace slug" style={styles.input} value={slug} onChangeText={setSlug} autoCapitalize="none" maxLength={50} />
-        <Pressable accessibilityRole="button" disabled={busy} style={styles.button} onPress={() => void createOrganization()}><Text style={styles.buttonText}>Create workspace</Text></Pressable>
-      </View>
-      <Pressable accessibilityRole="button" disabled={busy} onPress={() => void logout()}><Text style={styles.link}>Sign out</Text></Pressable>
-    </>}
-  </ScrollView></SafeAreaView>;
+export default function Discover() {
+  const { api } = useSession(); const [search, setSearch] = useState(''); const [category, setCategory] = useState(''); const [page, setPage] = useState(1);
+  const query = new URLSearchParams({ search, category, page: String(page) });
+  const events = useQuery({ queryKey: ['events', query.toString()], queryFn: () => api<Paginated<TicketEvent>>(`/events/?${query}`) });
+  return <Page title="Find your next good moment."><View style={styles.hero}><Text style={styles.badge}>GOOD MOMENTS START HERE</Text><Text style={styles.subtitle}>Small stages. Big ideas.</Text><Text style={styles.text}>Find your people, and an event worth being there for.</Text><Text style={styles.muted}>Synthetic events · All payments are simulated.</Text></View><Input label="Search events" value={search} onChangeText={value => { setSearch(value); setPage(1); }} /><View style={styles.row}>{['', 'Music', 'Theatre', 'Technology'].map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: category === value }} style={[styles.card, { padding: 10, backgroundColor: category === value ? '#dce8c7' : '#fff' }]} onPress={() => { setCategory(value); setPage(1); }}><Text style={styles.text}>{value || 'All'}</Text></Pressable>)}</View><Alert error={events.error} />{events.isPending && <Loading />}{events.data?.results.map(event => <Pressable key={event.id} accessibilityRole="button" accessibilityLabel={`View ${event.title}`} style={styles.card} onPress={() => router.push(`/events/${event.id}`)}><Text style={styles.badge}>{event.category} · {event.status}</Text><Text style={styles.subtitle}>{event.title}</Text><Text style={styles.muted}>{new Date(event.start_at).toLocaleString()} · {event.venue_name}</Text><Text style={styles.text}>{event.ticket_types.length ? `From ${money(Math.min(...event.ticket_types.map(type => type.price_minor)), event.ticket_types[0].currency)}` : 'Ticket information coming soon'} ↗</Text></Pressable>)}{events.data && !events.data.results.length && <Text style={styles.muted}>No events found. Try another search.</Text>}{events.data?.previous && <Button title="Previous events" onPress={() => setPage(page - 1)} />}{events.data?.next && <Button title="More events" onPress={() => setPage(page + 1)} />}</Page>;
 }
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f5f7f2' }, content: { padding: 24, gap: 18 },
-  brand: { fontSize: 36, fontWeight: '800', color: '#152f2b', marginBottom: 20 },
-  title: { fontSize: 28, fontWeight: '700', color: '#152f2b' }, description: { color: '#627566', fontSize: 16 },
-  card: { padding: 22, borderRadius: 16, backgroundColor: '#fff', gap: 14, borderWidth: 1, borderColor: '#dfe6d9' },
-  input: { borderWidth: 1, borderColor: '#cbd6c9', borderRadius: 8, padding: 12, color: '#152f2b' },
-  button: { backgroundColor: '#204d36', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 }, link: { color: '#316747', textAlign: 'center', padding: 12 },
-  error: { backgroundColor: '#fff0ec', padding: 16, color: '#8b2a19', borderRadius: 8 },
-  organization: { padding: 20, backgroundColor: '#fff', borderRadius: 12, gap: 6 }, orgTitle: { fontSize: 20, fontWeight: '600', color: '#152f2b' },
-});

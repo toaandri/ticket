@@ -16,7 +16,7 @@ class InventoryBucket(Entity):
     class Meta:
         constraints: ClassVar[list] = [
             models.CheckConstraint(
-                check=models.Q(capacity__gte=models.F("held_count") + models.F("sold_count")),
+                condition=models.Q(capacity__gte=models.F("held_count") + models.F("sold_count")),
                 name="inventory_within_capacity",
             )
         ]
@@ -33,7 +33,7 @@ class SeatClaim(Entity):
 
     class Meta:
         constraints: ClassVar[list] = [
-            models.CheckConstraint(check=models.Q(state__in=["HELD", "SOLD"]), name="seat_claim_valid_state")
+            models.CheckConstraint(condition=models.Q(state__in=["HELD", "SOLD"]), name="seat_claim_valid_state")
         ]
 
 

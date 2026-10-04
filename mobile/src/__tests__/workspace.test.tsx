@@ -1,43 +1,22 @@
-import { beforeEach, expect, jest, test } from '@jest/globals';
+import { afterEach, beforeEach, expect, jest, test } from '@jest/globals';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import Index from '../../app/index';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Account from '../../app/account';
+import Scanner from '../../app/scanner';
+import { SessionProvider } from '../session';
 import { getRefresh, request, saveRefresh } from '../api';
-
-jest.mock('../api', () => ({ getRefresh: jest.fn(), request: jest.fn(), saveRefresh: jest.fn() }));
+import { View } from 'react-native';
+jest.mock('../api', () => { class ApiError extends Error { status = 401; } return { getRefresh: jest.fn(), request: jest.fn(), saveRefresh: jest.fn(), ApiError }; });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: jest.requireActual<typeof import('react-native')>('react-native').View }));
-const getRefreshMock = jest.mocked(getRefresh);
-const requestMock = jest.mocked(request);
-const saveRefreshMock = jest.mocked(saveRefresh);
-
-beforeEach(() => {
-  jest.resetAllMocks();
-  jest.useRealTimers();
-  getRefreshMock.mockResolvedValue(null);
-  saveRefreshMock.mockResolvedValue(undefined);
-});
-
-test('signs in and stores the refresh token securely through the session adapter', async () => {
-  requestMock.mockResolvedValueOnce({ access: 'access', refresh: 'refresh' })
-    .mockResolvedValueOnce({ id: 'user-1', email: 'alice@example.com', display_name: 'Alice' })
-    .mockResolvedValueOnce({ results: [{ id: 'org-1', name: 'Concert team', slug: 'concert-team' }] });
-  const screen = render(<Index />);
-  await waitFor(() => expect(screen.queryByLabelText('Loading workspace')).toBeNull());
-  fireEvent.changeText(screen.getByLabelText('Email'), 'alice@example.com');
-  fireEvent.changeText(screen.getByLabelText('Password'), 'example-password-93!');
-  fireEvent.press(screen.getByText('Sign in'));
-  await waitFor(() => expect(screen.getByText('Concert team')).toBeTruthy());
-  expect(saveRefreshMock).toHaveBeenCalledWith('refresh');
-  expect(screen.getByText('Hello, Alice.')).toBeTruthy();
-});
-
-test('shows API failure without opening an authenticated workspace', async () => {
-  requestMock.mockRejectedValueOnce(new Error('Invalid credentials.'));
-  const screen = render(<Index />);
-  await waitFor(() => expect(screen.queryByLabelText('Loading workspace')).toBeNull());
-  fireEvent.changeText(screen.getByLabelText('Email'), 'alice@example.com');
-  fireEvent.changeText(screen.getByLabelText('Password'), 'wrong');
-  fireEvent.press(screen.getByText('Sign in'));
-  await waitFor(() => expect(screen.getByText('Invalid credentials.')).toBeTruthy());
-  expect(screen.queryByText('Your organizations')).toBeNull();
-  expect(saveRefreshMock).not.toHaveBeenCalled();
-});
+jest.mock('expo-router', () => ({ useLocalSearchParams: () => ({}), router: { push: jest.fn() } }));
+jest.mock('expo-camera', () => ({ CameraView: jest.requireActual<typeof import('react-native')>('react-native').View, useCameraPermissions: () => [{ granted: false }, jest.fn()] }));
+jest.mock('expo-network', () => ({ getNetworkStateAsync: jest.fn() }));
+const getRefreshMock = jest.mocked(getRefresh); const requestMock = jest.mocked(request); const saveRefreshMock = jest.mocked(saveRefresh);
+const profile = { id: 'user-1', email: 'alice@example.com', display_name: 'Alice', email_verified_at: '2026-01-01T00:00:00Z' }; const page = { count: 0, results: [] };
+let client: QueryClient;
+afterEach(() => client.clear());
+function Wrapper({ children }: { children: React.ReactNode }) { return <QueryClientProvider client={client}><SessionProvider>{children}</SessionProvider></QueryClientProvider>; }
+beforeEach(() => { jest.clearAllMocks(); requestMock.mockReset(); client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } }); getRefreshMock.mockResolvedValue(null); saveRefreshMock.mockResolvedValue(undefined); requestMock.mockImplementation(async <T,>(path: string): Promise<T> => (path === '/me/' ? profile : path === '/auth/login/' ? { access: 'access', refresh: 'refresh' } : page) as T); });
+test('signs in and persists only the refresh credential through SecureStore adapter', async () => { const screen = await render(<Account />, { wrapper: Wrapper }); await fireEvent.changeText(screen.getByLabelText('Email'), profile.email); await fireEvent.changeText(screen.getByLabelText('Password'), 'example-password-93!'); await fireEvent.press(screen.getByText('Sign in')); expect(await screen.findByText('Hello, Alice.')).toBeTruthy(); expect(saveRefreshMock).toHaveBeenCalledWith('refresh'); expect(requestMock).toHaveBeenCalledWith('/me/', {}, 'access'); });
+test('leaves account unauthenticated on a failed login', async () => { requestMock.mockRejectedValue(new Error('Invalid credentials.')); const screen = await render(<Account />, { wrapper: Wrapper }); await fireEvent.changeText(screen.getByLabelText('Email'), profile.email); await fireEvent.changeText(screen.getByLabelText('Password'), 'wrong'); await fireEvent.press(screen.getByText('Sign in')); expect(await screen.findByText('Invalid credentials.')).toBeTruthy(); expect(saveRefreshMock).not.toHaveBeenCalled(); expect(screen.queryByText('Your organizations')).toBeNull(); });
+test('restores a rotated session and scopes scanner events to the staff endpoint', async () => { getRefreshMock.mockResolvedValue('stored-refresh'); requestMock.mockImplementation(async <T,>(path: string): Promise<T> => (path === '/auth/refresh/' ? { access: 'rotated-access', refresh: 'rotated-refresh' } : path === '/me/' ? profile : page) as T); const screen = await render(<View><Scanner /></View>, { wrapper: Wrapper }); expect(await screen.findByText('No assigned events. Ask your organizer to assign your Scanner membership to an event.')).toBeTruthy(); await waitFor(() => expect(requestMock).toHaveBeenCalledWith('/staff/events/', {}, 'rotated-access')); expect(saveRefreshMock).toHaveBeenCalledWith('rotated-refresh'); expect(screen.queryByText('Scan with camera')).toBeNull(); });

@@ -79,3 +79,9 @@ yarn-error.log*
 *.pem
 *.key
 *.crt
+# Generated checks / private recovery artifacts
+**/test-results/
+**/playwright-report/
+**/.mypy_cache/
+*.tsbuildinfo
+private-backups/

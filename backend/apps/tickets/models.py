@@ -21,6 +21,7 @@ class Ticket(Entity):
         max_length=10, default="VALID", choices=[(s, s.title()) for s in ["VALID", "USED", "REVOKED", "REFUNDED"]]
     )
     used_at = models.DateTimeField(null=True)
+    inventory_released = models.BooleanField(default=False)
     revoked_at = models.DateTimeField(null=True)
     version = models.PositiveIntegerField(default=1)
     refund = models.ForeignKey("payments.Refund", on_delete=models.PROTECT, null=True, related_name="tickets")

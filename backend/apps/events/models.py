@@ -41,15 +41,16 @@ class Event(Entity):
         ordering: ClassVar[list] = ["start_at", "id"]
         constraints: ClassVar[list] = [
             models.UniqueConstraint(fields=["organization", "slug"], name="unique_organization_event_slug"),
-            models.CheckConstraint(check=models.Q(start_at__lt=models.F("end_at")), name="event_time_order"),
+            models.CheckConstraint(condition=models.Q(start_at__lt=models.F("end_at")), name="event_time_order"),
             models.CheckConstraint(
-                check=models.Q(sales_start_at__lt=models.F("sales_end_at")), name="event_sales_time_order"
+                condition=models.Q(sales_start_at__lt=models.F("sales_end_at")), name="event_sales_time_order"
             ),
             models.CheckConstraint(
-                check=models.Q(status__in=["DRAFT", "PUBLISHED", "CANCELLED", "COMPLETED"]), name="event_valid_status"
+                condition=models.Q(status__in=["DRAFT", "PUBLISHED", "CANCELLED", "COMPLETED"]),
+                name="event_valid_status",
             ),
             models.CheckConstraint(
-                check=models.Q(seating_mode__in=["GENERAL", "ASSIGNED", "MIXED"]), name="event_valid_mode"
+                condition=models.Q(seating_mode__in=["GENERAL", "ASSIGNED", "MIXED"]), name="event_valid_mode"
             ),
         ]
 
@@ -94,12 +95,14 @@ class EventTicketType(Entity):
             models.UniqueConstraint(
                 fields=["section"], condition=models.Q(kind="ASSIGNED"), name="one_assigned_type_per_section"
             ),
-            models.CheckConstraint(check=models.Q(kind__in=["GENERAL", "ASSIGNED"]), name="ticket_type_valid_kind"),
             models.CheckConstraint(
-                check=models.Q(currency__in=["EUR", "USD", "MGA"]), name="ticket_type_supported_currency"
+                condition=models.Q(kind__in=["GENERAL", "ASSIGNED"]), name="ticket_type_valid_kind"
             ),
             models.CheckConstraint(
-                check=models.Q(quota__gt=0, per_order_limit__gt=0, per_order_limit__lte=20),
+                condition=models.Q(currency__in=["EUR", "USD", "MGA"]), name="ticket_type_supported_currency"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(quota__gt=0, per_order_limit__gt=0, per_order_limit__lte=20),
                 name="ticket_type_positive_limits",
             ),
         ]

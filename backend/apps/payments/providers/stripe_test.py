@@ -37,6 +37,8 @@ class StripeTestPaymentProvider:
                 result = json.load(response)
         except (HTTPError, URLError, TimeoutError, ValueError) as exc:
             raise ProviderUnavailable() from exc
+        if not isinstance(result, dict):
+            raise ProviderUnavailable()
         if result.get("livemode") is True:
             raise PermissionDenied("Live Stripe responses are never accepted.")
         return result
@@ -63,6 +65,14 @@ class StripeTestPaymentProvider:
 
     def fetch_status(self, payment):
         session = self.request("GET", f"checkout/sessions/{payment.provider_payment_id}")
+        if (
+            session.get("id") != payment.provider_payment_id
+            or session.get("client_reference_id") != str(payment.pk)
+            or session.get("livemode") is not False
+            or session.get("amount_total") != payment.amount_minor
+            or str(session.get("currency", "")).upper() != payment.currency
+        ):
+            raise PermissionDenied("Test payment response does not match its immutable order.")
         if session.get("payment_status") == "paid":
             payment.payment_intent_id = session.get("payment_intent") or ""
             payment.save(update_fields=["payment_intent_id"])
@@ -100,6 +110,12 @@ class StripeTestPaymentProvider:
             event = json.loads(body)
         except (KeyError, ValueError, TypeError) as exc:
             raise PermissionDenied("Invalid Stripe signature.") from exc
+        if (
+            not isinstance(event, dict)
+            or not isinstance(event.get("id"), str)
+            or not isinstance(event.get("type"), str)
+        ):
+            raise PermissionDenied("Invalid Stripe event shape.")
         if event.get("livemode") is not False:
             raise PermissionDenied("Only Stripe test events are accepted.")
         return event

@@ -7,7 +7,9 @@ from .models import Event
 class AvailabilityConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         event_id = self.scope["url_route"]["kwargs"]["event_id"]
-        exists = await database_sync_to_async(Event.objects.filter(pk=event_id, status="PUBLISHED").exists)()
+        exists = await database_sync_to_async(
+            Event.objects.filter(pk=event_id, status="PUBLISHED", organization__status="ACTIVE").exists
+        )()
         if not exists:
             await self.close(code=4404)
             return

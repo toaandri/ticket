@@ -15,6 +15,7 @@ class PaymentAttempt(Entity):
     provider_payment_id = models.CharField(max_length=200, null=True, blank=True)
     idempotency_key = models.CharField(max_length=128)
     fingerprint = models.CharField(max_length=64)
+    scenario = models.CharField(max_length=10, default="success")
     amount_minor = models.PositiveIntegerField()
     currency = models.CharField(max_length=3)
     status = models.CharField(

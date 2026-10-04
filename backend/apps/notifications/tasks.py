@@ -20,3 +20,6 @@ def maintain_inventory():
 
     expire_holds()
     reconcile_payments()
+    from apps.events.services import refund_cancelled_events
+
+    refund_cancelled_events()

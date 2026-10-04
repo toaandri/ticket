@@ -6,6 +6,9 @@ from django.db import models
 
 class Organization(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    status = models.CharField(
+        max_length=9, choices=[("ACTIVE", "Active"), ("SUSPENDED", "Suspended")], default="ACTIVE"
+    )
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=200)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="owned_organizations")
@@ -30,7 +33,7 @@ class Membership(models.Model):
         constraints = (
             models.UniqueConstraint(fields=["organization", "user"], name="unique_org_membership"),
             models.CheckConstraint(
-                check=models.Q(role__in=["OWNER", "MANAGER", "EDITOR", "FINANCE", "SCANNER"]),
+                condition=models.Q(role__in=["OWNER", "MANAGER", "EDITOR", "FINANCE", "SCANNER"]),
                 name="valid_membership_role",
             ),
         )
@@ -50,7 +53,7 @@ class Invitation(models.Model):
     class Meta:
         constraints = (
             models.CheckConstraint(
-                check=models.Q(role__in=["MANAGER", "EDITOR", "FINANCE", "SCANNER"]), name="valid_invitation_role"
+                condition=models.Q(role__in=["MANAGER", "EDITOR", "FINANCE", "SCANNER"]), name="valid_invitation_role"
             ),
         )
 

@@ -16,7 +16,7 @@ from apps.inventory.models import InventoryBucket
 from apps.orders.models import Order
 from apps.orders.services import create_order
 from apps.organizations.models import EventStaffAssignment, Membership
-from apps.payments.models import PaymentAttempt, Refund
+from apps.payments.models import PaymentAttempt, PaymentEventInbox, Refund
 from apps.payments.providers.stripe_test import StripeTestPaymentProvider
 from apps.payments.services import initiate_payment, process_payment_event, reconcile_payments, refund_order
 from apps.promotions.models import Promotion
@@ -281,3 +281,124 @@ def test_stripe_only_test_keys_and_signed_webhook(settings):
         provider.verify_webhook(f"t={timestamp},v1={signature}", body + b" ")
     with pytest.raises(PermissionDenied):
         provider.verify_webhook(f"t=1,v1={signature}", body)
+
+
+@pytest.mark.django_db
+def test_creation_outage_is_recovered_without_duplicate_issuance(checkout_demo, monkeypatch):
+    owner, _, _, _, order = checkout_demo
+    from apps.payments.providers.mock import MockPaymentProvider
+    from apps.payments.providers.stripe_test import ProviderUnavailable
+    from apps.payments.services import reconcile_payments
+
+    original = MockPaymentProvider.create_payment
+
+    def outage(*_args):
+        raise ProviderUnavailable()
+
+    monkeypatch.setattr(MockPaymentProvider, "create_payment", outage)
+    with pytest.raises(ProviderUnavailable):
+        initiate_payment(actor=owner, order_id=order.pk, key="outage")
+    payment = PaymentAttempt.objects.get()
+    assert payment.status == "CREATED" and not Ticket.objects.exists()
+    PaymentAttempt.objects.filter(pk=payment.pk).update(created_at=timezone.now() - timedelta(minutes=1))
+    monkeypatch.setattr(MockPaymentProvider, "create_payment", original)
+    reconcile_payments()
+    reconcile_payments()
+    order.refresh_from_db()
+    assert order.status == "PAID" and Ticket.objects.count() == 3
+    assert PaymentAttempt.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_stripe_reconciliation_rejects_mismatched_amount(checkout_demo, settings, monkeypatch):
+    owner, _, _, _, order = checkout_demo
+    from apps.payments.services import prepare_payment
+
+    settings.STRIPE_ENABLED = True
+    settings.STRIPE_SECRET_KEY = "sk_test_synthetic"
+    payment, _ = prepare_payment(actor=owner, order_id=order.pk, key="stripe", provider="STRIPE_TEST")
+    payment.provider_payment_id = "cs_test_synthetic"
+    payment.save()
+    provider = StripeTestPaymentProvider()
+    session = {
+        "id": payment.provider_payment_id,
+        "client_reference_id": str(payment.pk),
+        "livemode": False,
+        "amount_total": payment.amount_minor + 1,
+        "currency": payment.currency.lower(),
+        "payment_status": "paid",
+    }
+    monkeypatch.setattr(provider, "request", lambda *_args: session)
+    with pytest.raises(PermissionDenied):
+        provider.fetch_status(payment)
+    assert not Ticket.objects.exists()
+
+
+@pytest.mark.django_db
+def test_staff_listing_and_financial_ticket_report_never_expose_qr(checkout_demo, auth_client):
+    owner, event, _, _, order = checkout_demo
+    initiate_payment(actor=owner, order_id=order.pk, key="pay")
+    scanner = User.objects.create_user("scanner-report@example.com", "example-password-93!")
+    member = Membership.objects.create(user=scanner, organization=event.organization, role="SCANNER")
+    client = auth_client(scanner)
+    assert client.get("/api/v1/staff/events/").data["results"] == []
+    EventStaffAssignment.objects.create(event=event, membership=member)
+    assert [item["id"] for item in client.get("/api/v1/staff/events/").data["results"]] == [str(event.pk)]
+    response = auth_client(owner).get(f"/api/v1/organizations/{event.organization_id}/tickets/?order={order.pk}")
+    assert response.status_code == 200 and response.data["count"] == 3
+    assert all("qr_url" not in item and "token_hash" not in item for item in response.data["results"])
+    assert client.get(f"/api/v1/organizations/{event.organization_id}/tickets/").status_code == 403
+
+
+@pytest.mark.django_db
+def test_signed_stripe_session_replay_and_malformed_payload(checkout_demo, settings, auth_client, monkeypatch):
+    owner, _, _, _, order = checkout_demo
+    from rest_framework.test import APIClient
+
+    from apps.payments.services import prepare_payment
+
+    settings.STRIPE_ENABLED = True
+    settings.STRIPE_SECRET_KEY = "sk_test_synthetic"
+    settings.STRIPE_WEBHOOK_SECRET = "whsec_synthetic"
+    payment, _ = prepare_payment(actor=owner, order_id=order.pk, key="signed", provider="STRIPE_TEST")
+    payment.provider_payment_id = "cs_test_synthetic"
+    payment.status = "PENDING"
+    payment.save()
+    session = {
+        "id": payment.provider_payment_id,
+        "client_reference_id": str(payment.pk),
+        "livemode": False,
+        "amount_total": payment.amount_minor,
+        "currency": payment.currency.lower(),
+        "payment_status": "paid",
+        "payment_intent": "pi_test_synthetic",
+    }
+    client = APIClient()
+
+    def send(event):
+        body = json.dumps(event).encode()
+        stamp = str(int(time.time()))
+        signature = hmac.new(
+            settings.STRIPE_WEBHOOK_SECRET.encode(), stamp.encode() + b"." + body, "sha256"
+        ).hexdigest()
+        return client.post(
+            "/api/v1/payments/stripe/webhook/",
+            body,
+            content_type="application/json",
+            HTTP_STRIPE_SIGNATURE=f"t={stamp},v1={signature}",
+        )
+
+    event = {
+        "id": "evt_test_replay",
+        "type": "checkout.session.completed",
+        "livemode": False,
+        "data": {"object": session},
+    }
+    for _ in range(10):
+        assert send(event).status_code == 200
+    assert Ticket.objects.count() == 3
+    assert PaymentEventInbox.objects.count() == 1
+    event["id"] = "evt_test_bad_shape"
+    event["data"]["object"] = {}
+    assert send(event).status_code == 400
+    assert client.post("/api/v1/payments/stripe/webhook/", b"{}", content_type="application/json").status_code == 403

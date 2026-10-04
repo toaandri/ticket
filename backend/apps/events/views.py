@@ -14,7 +14,7 @@ from .serializers import (
     TicketTypeCreateSerializer,
     TicketTypeSerializer,
 )
-from .services import configure_ticket_type, create_event, publish_event, update_event
+from .services import cancel_event, configure_ticket_type, create_event, publish_event, update_event
 
 
 class EventViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -27,7 +27,7 @@ class EventViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
         queryset = Event.objects.select_related("venue").prefetch_related("ticket_types").order_by("start_at", "id")
         if getattr(self, "swagger_fake_view", False):
             return queryset.none()
-        visible = Q(status__in=["PUBLISHED", "COMPLETED", "CANCELLED"])
+        visible = Q(status__in=["PUBLISHED", "COMPLETED", "CANCELLED"], organization__status="ACTIVE")
         if self.request.user.is_authenticated:
             visible |= Q(organization__memberships__user=self.request.user)
         queryset = queryset.filter(visible).distinct()
@@ -74,6 +74,12 @@ class EventViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
     def publish(self, request, pk=None):
         self.get_object()
         return Response(EventSerializer(publish_event(actor=request.user, event_id=pk)).data)
+
+    @extend_schema(request=None, responses=EventSerializer)
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    def cancel(self, request, pk=None):
+        self.get_object()
+        return Response(EventSerializer(cancel_event(actor=request.user, event_id=pk)).data)
 
     @extend_schema(request=TicketTypeCreateSerializer, responses={201: TicketTypeSerializer})
     @action(detail=True, methods=["post"], url_path="ticket-types", permission_classes=[permissions.IsAuthenticated])
