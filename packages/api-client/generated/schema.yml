@@ -4,6 +4,505 @@ info:
   version: 1.0.0
   description: Event management and ticketing platform API
 paths:
+  /api/v1/events/:
+    get:
+      operationId: events_list
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: string
+      - in: query
+        name: category
+        schema:
+          type: string
+      - in: query
+        name: city
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: organization
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - events
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEventList'
+          description: ''
+    post:
+      operationId: events_create
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EventCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EventCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+  /api/v1/events/{id}/:
+    get:
+      operationId: events_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this event.
+        required: true
+      tags:
+      - events
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+    patch:
+      operationId: events_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this event.
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEventRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEventRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEventRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+  /api/v1/events/{id}/availability/:
+    get:
+      operationId: events_availability_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this event.
+        required: true
+      tags:
+      - events
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Availability'
+          description: ''
+  /api/v1/events/{id}/publish/:
+    post:
+      operationId: events_publish_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this event.
+        required: true
+      tags:
+      - events
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+          description: ''
+  /api/v1/events/{id}/ticket-types/:
+    post:
+      operationId: events_ticket_types_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this event.
+        required: true
+      tags:
+      - events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketTypeCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TicketTypeCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TicketTypeCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketType'
+          description: ''
+  /api/v1/venues/:
+    get:
+      operationId: venues_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - venues
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedVenueList'
+          description: ''
+    post:
+      operationId: venues_create
+      tags:
+      - venues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VenueCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VenueCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VenueCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Venue'
+          description: ''
+  /api/v1/venues/{id}/:
+    get:
+      operationId: venues_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this venue.
+        required: true
+      tags:
+      - venues
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Venue'
+          description: ''
+    patch:
+      operationId: venues_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this venue.
+        required: true
+      tags:
+      - venues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedVenueRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedVenueRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedVenueRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Venue'
+          description: ''
+  /api/v1/venues/{id}/seats/:
+    post:
+      operationId: venues_seats_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this venue.
+        required: true
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - venues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeatsCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SeatsCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SeatsCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSeatList'
+          description: ''
+  /api/v1/venues/{id}/sections/:
+    post:
+      operationId: venues_sections_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this venue.
+        required: true
+      tags:
+      - venues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SectionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SectionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SectionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Section'
+          description: ''
+  /api/v1/reservations/:
+    post:
+      operationId: reservations_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        required: true
+      tags:
+      - reservations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HoldCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HoldCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HoldCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+          description: ''
+  /api/v1/reservations/{id}/:
+    get:
+      operationId: reservations_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this reservation.
+        required: true
+      tags:
+      - reservations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+          description: ''
+  /api/v1/reservations/{id}/cancel/:
+    post:
+      operationId: reservations_cancel_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this reservation.
+        required: true
+      tags:
+      - reservations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+          description: ''
   /api/v1/auth/email-verification/:
     post:
       operationId: auth_email_verification_create
@@ -437,6 +936,272 @@ components:
       required:
       - organization_id
       - role
+    Availability:
+      type: object
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        ticket_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/BucketAvailability'
+        seats:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSeat'
+      required:
+      - event_id
+      - seats
+      - ticket_types
+      - version
+    BucketAvailability:
+      type: object
+      properties:
+        ticket_type_id:
+          type: string
+          format: uuid
+        capacity:
+          type: integer
+        held:
+          type: integer
+        sold:
+          type: integer
+        available:
+          type: integer
+      required:
+      - available
+      - capacity
+      - held
+      - sold
+      - ticket_type_id
+    CurrencyEnum:
+      enum:
+      - EUR
+      - USD
+      - MGA
+      type: string
+      description: |-
+        * `EUR` - EUR
+        * `USD` - USD
+        * `MGA` - MGA
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization_id:
+          type: string
+          format: uuid
+          readOnly: true
+        venue_id:
+          type: string
+          format: uuid
+          nullable: true
+        venue_name:
+          type: string
+          readOnly: true
+          default: Online / to be announced
+        city:
+          type: string
+          readOnly: true
+          default: Online
+        slug:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        category:
+          type: string
+          maxLength: 50
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        event_timezone:
+          type: string
+          maxLength: 64
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EventStatusEnum'
+          readOnly: true
+        seating_mode:
+          $ref: '#/components/schemas/SeatingModeEnum'
+        sales_start_at:
+          type: string
+          format: date-time
+        sales_end_at:
+          type: string
+          format: date-time
+        age_policy:
+          type: string
+          maxLength: 200
+        cancellation_policy:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        version:
+          type: integer
+          readOnly: true
+        ticket_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketType'
+          readOnly: true
+      required:
+      - city
+      - end_at
+      - id
+      - organization_id
+      - published_at
+      - sales_end_at
+      - sales_start_at
+      - slug
+      - start_at
+      - status
+      - ticket_types
+      - title
+      - venue_name
+      - version
+    EventCreateRequest:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        venue_id:
+          type: string
+          format: uuid
+          nullable: true
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+        category:
+          type: string
+          minLength: 1
+          maxLength: 50
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        event_timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        seating_mode:
+          $ref: '#/components/schemas/SeatingModeEnum'
+        sales_start_at:
+          type: string
+          format: date-time
+        sales_end_at:
+          type: string
+          format: date-time
+        age_policy:
+          type: string
+          minLength: 1
+          maxLength: 200
+        cancellation_policy:
+          type: string
+          minLength: 1
+      required:
+      - end_at
+      - organization_id
+      - sales_end_at
+      - sales_start_at
+      - slug
+      - start_at
+      - title
+    EventSeat:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        label:
+          type: string
+        row_label:
+          type: string
+        accessible:
+          type: boolean
+        section_id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          readOnly: true
+      required:
+      - accessible
+      - id
+      - label
+      - row_label
+      - section_id
+      - state
+    EventStatusEnum:
+      enum:
+      - DRAFT
+      - PUBLISHED
+      - CANCELLED
+      - COMPLETED
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `PUBLISHED` - Published
+        * `CANCELLED` - Cancelled
+        * `COMPLETED` - Completed
+    HoldCreateRequest:
+      type: object
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HoldItemRequest'
+      required:
+      - event_id
+      - items
+    HoldItemRequest:
+      type: object
+      properties:
+        ticket_type_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          maximum: 20
+          minimum: 1
+        event_seat_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - quantity
+      - ticket_type_id
     InvitationAcceptRequest:
       type: object
       properties:
@@ -479,6 +1244,14 @@ components:
       - expires_at
       - id
       - role
+    KindEnum:
+      enum:
+      - GENERAL
+      - ASSIGNED
+      type: string
+      description: |-
+        * `GENERAL` - General admission
+        * `ASSIGNED` - Assigned seating
     LogoutRequest:
       type: object
       properties:
@@ -551,6 +1324,29 @@ components:
       required:
       - name
       - slug
+    PaginatedEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
     PaginatedOrganizationList:
       type: object
       required:
@@ -574,6 +1370,99 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Organization'
+    PaginatedSeatList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Seat'
+    PaginatedVenueList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Venue'
+    PatchedEventRequest:
+      type: object
+      properties:
+        venue_id:
+          type: string
+          format: uuid
+          nullable: true
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+        category:
+          type: string
+          minLength: 1
+          maxLength: 50
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        event_timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        seating_mode:
+          $ref: '#/components/schemas/SeatingModeEnum'
+        sales_start_at:
+          type: string
+          format: date-time
+        sales_end_at:
+          type: string
+          format: date-time
+        age_policy:
+          type: string
+          minLength: 1
+          maxLength: 200
+        cancellation_policy:
+          type: string
+          minLength: 1
     PatchedProfileRequest:
       type: object
       properties:
@@ -585,6 +1474,29 @@ components:
       properties:
         role:
           $ref: '#/components/schemas/RoleEnum'
+    PatchedVenueRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        address:
+          type: string
+        city:
+          type: string
+          minLength: 1
+          maxLength: 100
+        country_code:
+          type: string
+          minLength: 1
+          maxLength: 2
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        accessibility_info:
+          type: string
     Profile:
       type: object
       properties:
@@ -660,6 +1572,89 @@ components:
       - access
       - refresh
       - user
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        event_id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ReservationStatusEnum'
+        expires_at:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReservationItem'
+      required:
+      - event_id
+      - expires_at
+      - id
+      - items
+    ReservationItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        ticket_type_id:
+          type: string
+          format: uuid
+        event_seat_id:
+          type: string
+          format: uuid
+          nullable: true
+        quantity:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        unit_price_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          type: string
+          maxLength: 3
+        status:
+          $ref: '#/components/schemas/ReservationItemStatusEnum'
+        name:
+          type: string
+      required:
+      - currency
+      - event_seat_id
+      - id
+      - name
+      - quantity
+      - ticket_type_id
+      - unit_price_minor
+    ReservationItemStatusEnum:
+      enum:
+      - ACTIVE
+      - CONSUMED
+      - RELEASED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `CONSUMED` - Consumed
+        * `RELEASED` - Released
+    ReservationStatusEnum:
+      enum:
+      - ACTIVE
+      - CONSUMED
+      - EXPIRED
+      - CANCELLED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `CONSUMED` - Consumed
+        * `EXPIRED` - Expired
+        * `CANCELLED` - Cancelled
     ResetConfirmRequest:
       type: object
       properties:
@@ -699,6 +1694,123 @@ components:
         * `EDITOR` - EDITOR
         * `FINANCE` - FINANCE
         * `SCANNER` - SCANNER
+    Seat:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        row_label:
+          type: string
+          maxLength: 20
+        seat_number:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        label:
+          type: string
+          maxLength: 50
+        accessible:
+          type: boolean
+      required:
+      - id
+      - label
+      - row_label
+      - seat_number
+    SeatRequest:
+      type: object
+      properties:
+        row_label:
+          type: string
+          minLength: 1
+          maxLength: 20
+        seat_number:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        label:
+          type: string
+          minLength: 1
+          maxLength: 50
+        accessible:
+          type: boolean
+      required:
+      - label
+      - row_label
+      - seat_number
+    SeatingModeEnum:
+      enum:
+      - GENERAL
+      - ASSIGNED
+      - MIXED
+      type: string
+      description: |-
+        * `GENERAL` - General
+        * `ASSIGNED` - Assigned
+        * `MIXED` - Mixed
+    SeatsCreateRequest:
+      type: object
+      properties:
+        section_id:
+          type: string
+          format: uuid
+        seats:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeatRequest'
+      required:
+      - seats
+      - section_id
+    Section:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 100
+        capacity:
+          type: integer
+          maximum: 10000
+          minimum: 1
+        seats:
+          type: array
+          items:
+            $ref: '#/components/schemas/Seat'
+          readOnly: true
+      required:
+      - capacity
+      - code
+      - id
+      - name
+      - seats
+    SectionRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        capacity:
+          type: integer
+          maximum: 10000
+          minimum: 1
+      required:
+      - capacity
+      - code
+      - name
     SecureRefreshRequest:
       type: object
       properties:
@@ -707,6 +1819,130 @@ components:
           minLength: 1
       required:
       - refresh
+    TicketType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        price_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          allOf:
+          - $ref: '#/components/schemas/CurrencyEnum'
+          default: EUR
+        quota:
+          type: integer
+          maximum: 100000
+          minimum: 1
+        per_order_limit:
+          type: integer
+          maximum: 20
+          minimum: 1
+          default: 10
+        section_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+      required:
+      - code
+      - id
+      - kind
+      - name
+      - price_minor
+      - quota
+      - section_id
+    TicketTypeCreateRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        price_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          allOf:
+          - $ref: '#/components/schemas/CurrencyEnum'
+          default: EUR
+        quota:
+          type: integer
+          maximum: 100000
+          minimum: 1
+        per_order_limit:
+          type: integer
+          maximum: 20
+          minimum: 1
+          default: 10
+        venue_section_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - code
+      - kind
+      - name
+      - price_minor
+      - quota
+    TicketTypeRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        price_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          allOf:
+          - $ref: '#/components/schemas/CurrencyEnum'
+          default: EUR
+        quota:
+          type: integer
+          maximum: 100000
+          minimum: 1
+        per_order_limit:
+          type: integer
+          maximum: 20
+          minimum: 1
+          default: 10
+      required:
+      - code
+      - kind
+      - name
+      - price_minor
+      - quota
     TokenObtainPair:
       type: object
       properties:
@@ -742,6 +1978,82 @@ components:
           maxLength: 2048
       required:
       - token
+    Venue:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization_id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 100
+        country_code:
+          type: string
+          maxLength: 2
+        timezone:
+          type: string
+          maxLength: 64
+        accessibility_info:
+          type: string
+        layout_frozen:
+          type: boolean
+          readOnly: true
+        layout_version:
+          type: integer
+          readOnly: true
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Section'
+          readOnly: true
+      required:
+      - city
+      - id
+      - layout_frozen
+      - layout_version
+      - name
+      - organization_id
+      - sections
+    VenueCreateRequest:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        address:
+          type: string
+        city:
+          type: string
+          minLength: 1
+          maxLength: 100
+        country_code:
+          type: string
+          minLength: 1
+          maxLength: 2
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        accessibility_info:
+          type: string
+      required:
+      - city
+      - name
+      - organization_id
   securitySchemes:
     cookieAuth:
       type: apiKey

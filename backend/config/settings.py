@@ -108,7 +108,7 @@ DATABASES = {
         default=config("DATABASE_URL", default=_default_db),  # type: ignore[arg-type]
     )
 }
-DATABASES["default"]["ATOMIC_REQUESTS"] = True
+DATABASES["default"]["ATOMIC_REQUESTS"] = False
 DATABASES["default"]["CONN_MAX_AGE"] = config("DB_CONN_MAX_AGE", default=60, cast=int)  # type: ignore[assignment]
 
 # ---------------------------------------------------------------------------
