@@ -69,3 +69,7 @@ None — Phase 0 is infrastructure only. All app code starts in Phase 1.
 - [ ] GET `/api/v1/me/` returns authenticated user profile
 - [ ] Cross-org tests: org A member cannot read org B resources
 - [ ] Scanner role cannot access finance endpoints
+
+## 2026-10-04 — scaffold audit and initial repairs
+
+See [repository-audit.md](repository-audit.md) for the observed baseline, exact corrections, checks and continuation gates. The earlier Phase 0 completion claim is not runtime-verified. Build metadata, backend Docker installation, web entry point, Vite typings and client lint configuration were repaired. Static checks passed; application tests are blocked by executor networking and missing dependencies. No functional phase is marked complete.
