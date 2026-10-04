@@ -28,8 +28,10 @@ class RegisterView(generics.CreateAPIView):
                 refresh = RefreshToken.for_user(user)
         except IntegrityError as exc:
             raise ValidationError({"email": "An account with this email already exists."}) from exc
-        return Response({"user": ProfileSerializer(user).data, "access": str(refresh.access_token),
-                         "refresh": str(refresh)}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"user": ProfileSerializer(user).data, "access": str(refresh.access_token), "refresh": str(refresh)},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class LoginView(TokenObtainPairView):
@@ -70,7 +72,12 @@ class LogoutView(APIView):
 
 class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = ProfileSerializer
-    http_method_names = ("get", "patch", "head", "options",)
+    http_method_names = (
+        "get",
+        "patch",
+        "head",
+        "options",
+    )
 
     def get_object(self):
         return self.request.user

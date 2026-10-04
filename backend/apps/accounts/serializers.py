@@ -8,8 +8,19 @@ from .models import User
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "email", "display_name", "email_verified_at", "created_at",)
-        read_only_fields = ("id", "email", "email_verified_at", "created_at",)
+        fields = (
+            "id",
+            "email",
+            "display_name",
+            "email_verified_at",
+            "created_at",
+        )
+        read_only_fields = (
+            "id",
+            "email",
+            "email_verified_at",
+            "created_at",
+        )
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -17,7 +28,11 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("email", "display_name", "password",)
+        fields = (
+            "email",
+            "display_name",
+            "password",
+        )
 
     def validate_email(self, value):
         value = value.strip().lower()
@@ -27,7 +42,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         try:
-            validate_password(attrs["password"], User(email=attrs["email"], display_name=attrs.get("display_name", "")))
+            validate_password(
+                attrs["password"], User(email=attrs["email"], display_name=attrs.get("display_name", ""))
+            )
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"password": exc.messages}) from exc
         return attrs

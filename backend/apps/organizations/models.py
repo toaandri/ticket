@@ -29,6 +29,8 @@ class Membership(models.Model):
     class Meta:
         constraints = (
             models.UniqueConstraint(fields=["organization", "user"], name="unique_org_membership"),
-            models.CheckConstraint(check=models.Q(role__in=["OWNER", "MANAGER", "EDITOR", "FINANCE", "SCANNER"]),
-                                   name="valid_membership_role"),
+            models.CheckConstraint(
+                check=models.Q(role__in=["OWNER", "MANAGER", "EDITOR", "FINANCE", "SCANNER"]),
+                name="valid_membership_role",
+            ),
         )

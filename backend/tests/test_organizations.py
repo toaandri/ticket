@@ -28,7 +28,9 @@ def test_foreign_organization_is_not_visible_even_to_platform_staff(auth_client)
 def test_client_cannot_set_other_user_as_owner(auth_client):
     alice = User.objects.create_user("alice@example.com", "example-password-93!")
     bob = User.objects.create_user("bob@example.com", "example-password-93!")
-    response = auth_client(alice).post("/api/v1/organizations/", {"name": "Demo", "slug": "demo", "owner": str(bob.pk)})
+    response = auth_client(alice).post(
+        "/api/v1/organizations/", {"name": "Demo", "slug": "demo", "owner": str(bob.pk)}
+    )
     assert response.status_code == 201
     assert Organization.objects.get(pk=response.data["id"]).owner_id == alice.pk
 
@@ -45,8 +47,10 @@ def test_database_rejects_duplicate_membership_and_invalid_role():
 
 def test_organization_creation_rolls_back_if_membership_fails(monkeypatch):
     user = User.objects.create_user("owner@example.com", "example-password-93!")
+
     def fail(*args, **kwargs):
         raise IntegrityError("forced membership failure")
+
     monkeypatch.setattr(Membership.objects, "create", fail)
     with pytest.raises(IntegrityError):
         create_organization(owner=user, name="Demo", slug="demo")

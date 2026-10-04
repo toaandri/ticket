@@ -8,9 +8,14 @@ PASSWORD = "correct-horse-ticket-93!"
 
 
 def test_register_normalizes_email_hashes_password_and_returns_profile(api_client):
-    response = api_client.post("/api/v1/auth/register/", {
-        "email": "Alice@Example.com", "password": PASSWORD, "display_name": "Alice",
-    })
+    response = api_client.post(
+        "/api/v1/auth/register/",
+        {
+            "email": "Alice@Example.com",
+            "password": PASSWORD,
+            "display_name": "Alice",
+        },
+    )
     assert response.status_code == 201, response.data
     user = User.objects.get(email="alice@example.com")
     assert user.check_password(PASSWORD)
@@ -69,7 +74,9 @@ def test_foreign_refresh_cannot_be_revoked(auth_client):
 def test_profile_update_does_not_allow_privilege_escalation(auth_client):
     user = User.objects.create_user("alice@example.com", PASSWORD)
     client = auth_client(user)
-    response = client.patch("/api/v1/me/", {"display_name": "New name", "is_staff": True, "is_superuser": True}, format="json")
+    response = client.patch(
+        "/api/v1/me/", {"display_name": "New name", "is_staff": True, "is_superuser": True}, format="json"
+    )
     assert response.status_code == 200
     user.refresh_from_db()
     assert user.display_name == "New name"
@@ -82,4 +89,6 @@ def test_anonymous_cannot_read_profile(api_client):
 
 def test_inactive_user_cannot_login(api_client):
     User.objects.create_user("alice@example.com", PASSWORD, is_active=False)
-    assert api_client.post("/api/v1/auth/login/", {"email": "alice@example.com", "password": PASSWORD}).status_code == 401
+    assert (
+        api_client.post("/api/v1/auth/login/", {"email": "alice@example.com", "password": PASSWORD}).status_code == 401
+    )

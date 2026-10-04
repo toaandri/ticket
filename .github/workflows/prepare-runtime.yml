@@ -26,6 +26,8 @@ jobs:
           pathlib.Path('/tmp/runtime-requirements.txt').write_text('\n'.join(project['dependencies']))
           PY
           pip download -r /tmp/runtime-requirements.txt -d /tmp/runtime-wheels
+          mkdir -p /tmp/test-wheels
+          mv /tmp/runtime-wheels/[Ff]aker*.whl /tmp/test-wheels/
       - name: Download test and lint wheels
         run: pip download pytest==8.2.2 pytest-django==4.8.0 pytest-asyncio==0.23.7 coverage==7.5.4 ruff==0.5.2 -d /tmp/test-wheels
       - name: Upload runtime wheels
