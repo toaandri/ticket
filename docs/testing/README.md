@@ -10,6 +10,8 @@
 
 All three real API Playwright journeys passed against the freshly migrated/seeded Compose stack (10.6s). Four race tests passed in each of three repetitions (25.37s, 25.37s, 29.17s). Restore into a separate PostgreSQL database preserved 3 orders/9 tickets/18 audit rows and reconciled with zero mismatches. Screenshots come from running synthetic apps and mask admission QR areas.
 
+The same three browser journeys passed again (12.5s) against an independent GitHub clone with fresh Compose volumes and generated signing keys. All runtime services started, migrations exited successfully and the API health endpoint returned 200. Eight synthetic messages reached Mailpit through the worker. This managed shell uses umask 077; tracked public source permissions were normalized to the usual 644/755 clone modes for non-root bind mounts, while `.env` remained 600.
+
 ## Test matrix
 
 | Area | Checks |
@@ -19,7 +21,7 @@ All three real API Playwright journeys passed against the freshly migrated/seede
 | Layout / holds | Publication freeze, invalid configuration, mixed seating, immutable prices, wrong seat, expiry/release once, capacity/claim constraints |
 | Orders / money | Payload fingerprint mismatch, duplicate concurrent checkout, integer promotion allocation/limits, immutable DB snapshots |
 | Payments / refunds | Duplicate concurrent payment, ten-event replay, amount/currency rollback, decline, late compensation, partial refund allocation, provider outage/recovery, signed TEST webhook fixtures |
-| Gate / wallet | Private PDF/PNG access, stored token hash, invalid/revoked/closed/foreign scans, assigned role and two-scanner acceptance race |
+| Gate / wallet | Private PDF/PNG access; hashed admission credentials; invalid, revoked, closed and foreign scans; assigned role and two-scanner acceptance race |
 | Operations | Reconciliation flags without repair, cancellation retries, SMTP outage/dedup, outbox rollback, post-commit hints, CSV formula escaping, timezone grouping, admin isolation, guarded/idempotent seed |
 | Clients | Memory-token web login/retry, native SecureStore adapter/rotated restoration, staff endpoint scope; real browser hold, payment, wallet, report, selected refund and invalid gate journey |
 

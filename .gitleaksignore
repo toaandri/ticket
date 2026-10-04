@@ -1,0 +1,3 @@
+# Historical test-matrix prose, not a credential (gate/wallet row).
+# Ignore only this exact finding; keep all other history and working-tree checks active.
+a9ce2205d40bacadc8966f798b228abc7c874679:docs/testing/README.md:generic-api-key:22
