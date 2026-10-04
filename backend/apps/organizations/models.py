@@ -34,3 +34,22 @@ class Membership(models.Model):
                 name="valid_membership_role",
             ),
         )
+
+
+class Invitation(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name="invitations")
+    email = models.EmailField()
+    role = models.CharField(max_length=10, choices=Membership.Role.choices)
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = (
+            models.CheckConstraint(
+                check=models.Q(role__in=["MANAGER", "EDITOR", "FINANCE", "SCANNER"]), name="valid_invitation_role"
+            ),
+        )

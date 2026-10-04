@@ -50,6 +50,9 @@ class LoginView(TokenObtainPairView):
 
 
 class RefreshView(TokenRefreshView):
+    from .serializers import SecureRefreshSerializer
+
+    serializer_class = SecureRefreshSerializer
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "login"
 
@@ -81,3 +84,62 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class VerificationRequestView(APIView):
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "login"
+
+    def post(self, request):
+        from .services import request_verification
+
+        request_verification(request.user)
+        return Response({"message": "Verification email sent."}, status=status.HTTP_202_ACCEPTED)
+
+
+class VerifyEmailView(APIView):
+    permission_classes = (AllowAny,)
+    authentication_classes = ()
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "login"
+
+    def post(self, request):
+        from .serializers import TokenSerializer
+        from .services import verify_email
+
+        serializer = TokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        verify_email(serializer.validated_data["token"])
+        return Response({"message": "Email verified."})
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = (AllowAny,)
+    authentication_classes = ()
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "login"
+
+    def post(self, request):
+        from .serializers import ResetRequestSerializer
+        from .services import request_password_reset
+
+        serializer = ResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        request_password_reset(serializer.validated_data["email"])
+        return Response({"message": "If this account exists, a reset email has been sent."}, status=202)
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = (AllowAny,)
+    authentication_classes = ()
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "login"
+
+    def post(self, request):
+        from .serializers import ResetConfirmSerializer
+        from .services import reset_password
+
+        serializer = ResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reset_password(**serializer.validated_data)
+        return Response({"message": "Password updated. Sign in again."})

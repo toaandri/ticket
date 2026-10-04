@@ -55,3 +55,33 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
+
+
+class TokenSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=2048)
+
+
+class ResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ResetConfirmSerializer(TokenSerializer):
+    user_id = serializers.UUIDField()
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class SecureRefreshSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+    def validate(self, attrs):
+        from rest_framework.exceptions import AuthenticationFailed
+        from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+        from rest_framework_simplejwt.settings import api_settings
+        from rest_framework_simplejwt.tokens import RefreshToken
+        from rest_framework_simplejwt.utils import get_md5_hash_password
+
+        token = RefreshToken(attrs["refresh"])
+        user = User.objects.filter(pk=token.get(api_settings.USER_ID_CLAIM), is_active=True).first()
+        if user is None or token.get(api_settings.REVOKE_TOKEN_CLAIM) != get_md5_hash_password(user.password):
+            raise AuthenticationFailed("Session revoked. Sign in again.")
+        return TokenRefreshSerializer().validate(attrs)

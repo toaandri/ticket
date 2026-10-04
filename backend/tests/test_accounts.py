@@ -92,3 +92,65 @@ def test_inactive_user_cannot_login(api_client):
     assert (
         api_client.post("/api/v1/auth/login/", {"email": "alice@example.com", "password": PASSWORD}).status_code == 401
     )
+
+
+def test_verification_token_sets_verified_timestamp_and_rejects_tampering(
+    api_client, auth_client, mailoutbox, settings
+):
+    from apps.accounts.services import request_verification
+
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    user = User.objects.create_user("alice@example.com", PASSWORD)
+    request_verification(user)
+    token = mailoutbox[0].body.splitlines()[-1]
+    assert api_client.post("/api/v1/auth/email-verify/", {"token": token + "x"}).status_code == 400
+    assert api_client.post("/api/v1/auth/email-verify/", {"token": token}).status_code == 200
+    user.refresh_from_db()
+    assert user.email_verified_at is not None
+    assert api_client.post("/api/v1/auth/email-verify/", {"token": token}).status_code == 200
+
+
+def test_password_reset_revokes_rotated_refresh_and_access(api_client, auth_client, mailoutbox, settings):
+    from django.contrib.auth.tokens import default_token_generator
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    user = User.objects.create_user("alice@example.com", PASSWORD)
+    old_refresh = str(RefreshToken.for_user(user))
+    rotated = api_client.post("/api/v1/auth/refresh/", {"refresh": old_refresh}).data
+    token = default_token_generator.make_token(user)
+    response = api_client.post(
+        "/api/v1/auth/password-reset/confirm/",
+        {"user_id": str(user.pk), "token": token, "password": "another-strong-ticket-password-94!"},
+    )
+    assert response.status_code == 200, response.data
+    assert api_client.post("/api/v1/auth/refresh/", {"refresh": rotated["refresh"]}).status_code == 401
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {rotated['access']}")
+    assert api_client.get("/api/v1/me/").status_code == 401
+    api_client.credentials()
+    assert (
+        api_client.post(
+            "/api/v1/auth/password-reset/confirm/", {"user_id": str(user.pk), "token": token, "password": PASSWORD}
+        ).status_code
+        == 400
+    )
+
+
+def test_reset_request_does_not_reveal_account_existence(api_client, mailoutbox, settings):
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    User.objects.create_user("alice@example.com", PASSWORD)
+    known = api_client.post("/api/v1/auth/password-reset/", {"email": "alice@example.com"})
+    unknown = api_client.post("/api/v1/auth/password-reset/", {"email": "unknown@example.com"})
+    assert known.status_code == unknown.status_code == 202
+    assert known.data == unknown.data
+    assert len(mailoutbox) == 1
+
+
+def test_disabled_account_cannot_refresh(api_client):
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    user = User.objects.create_user("alice@example.com", PASSWORD)
+    refresh = str(RefreshToken.for_user(user))
+    user.is_active = False
+    user.save()
+    assert api_client.post("/api/v1/auth/refresh/", {"refresh": refresh}).status_code == 401

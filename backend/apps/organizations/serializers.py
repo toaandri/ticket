@@ -18,3 +18,16 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "owner",
             "created_at",
         )
+
+
+class InvitationCreateSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    role = serializers.ChoiceField(choices=["MANAGER", "EDITOR", "FINANCE", "SCANNER"])
+
+
+class InvitationAcceptSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=2048)
+
+
+class RoleSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=["MANAGER", "EDITOR", "FINANCE", "SCANNER"])
