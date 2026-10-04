@@ -1,9 +1,6 @@
 name: Prepare development dependencies
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - .github/workflows/prepare-runtime.yml
 permissions:
   contents: read
 jobs:

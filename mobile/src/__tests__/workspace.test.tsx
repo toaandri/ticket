@@ -4,7 +4,7 @@ import Index from '../../app/index';
 import { getRefresh, request, saveRefresh } from '../api';
 
 jest.mock('../api', () => ({ getRefresh: jest.fn(), request: jest.fn(), saveRefresh: jest.fn() }));
-jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: jest.requireActual('react-native').View }));
+jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: jest.requireActual<typeof import('react-native')>('react-native').View }));
 const getRefreshMock = jest.mocked(getRefresh);
 const requestMock = jest.mocked(request);
 const saveRefreshMock = jest.mocked(saveRefresh);
