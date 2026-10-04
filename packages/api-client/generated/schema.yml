@@ -4,6 +4,59 @@ info:
   version: 1.0.0
   description: Event management and ticketing platform API
 paths:
+  /api/v1/check-ins/:
+    post:
+      operationId: check_ins_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        required: true
+      tags:
+      - check-ins
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckInCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckInCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckInCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckIn'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckIn'
+          description: ''
+  /api/v1/payments/stripe/webhook/:
+    post:
+      operationId: payments_stripe_webhook_create
+      tags:
+      - payments
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResult'
+          description: ''
   /api/v1/events/:
     get:
       operationId: events_list
@@ -503,6 +556,319 @@ paths:
               schema:
                 $ref: '#/components/schemas/Reservation'
           description: ''
+  /api/v1/orders/:
+    get:
+      operationId: orders_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - orders
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrderList'
+          description: ''
+    post:
+      operationId: orders_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        required: true
+      tags:
+      - orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/orders/{id}/:
+    get:
+      operationId: orders_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this order.
+        required: true
+      tags:
+      - orders
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/orders/{id}/payments/:
+    post:
+      operationId: orders_payments_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this order.
+        required: true
+      tags:
+      - orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentCreateRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/v1/orders/{id}/refunds/:
+    post:
+      operationId: orders_refunds_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this order.
+        required: true
+      tags:
+      - orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RefundCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RefundCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+          description: ''
+  /api/v1/orders/{id}/simulate-payment/:
+    post:
+      operationId: orders_simulate_payment_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this order.
+        required: true
+      tags:
+      - orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/v1/tickets/:
+    get:
+      operationId: tickets_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - tickets
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTicketList'
+          description: ''
+  /api/v1/tickets/{id}/:
+    get:
+      operationId: tickets_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ticket.
+        required: true
+      tags:
+      - tickets
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+          description: ''
+  /api/v1/tickets/{id}/pdf/:
+    get:
+      operationId: tickets_pdf_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ticket.
+        required: true
+      tags:
+      - tickets
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/tickets/{id}/qr/:
+    get:
+      operationId: tickets_qr_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ticket.
+        required: true
+      tags:
+      - tickets
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+          description: ''
   /api/v1/auth/email-verification/:
     post:
       operationId: auth_email_verification_create
@@ -977,6 +1343,48 @@ components:
       - held
       - sold
       - ticket_type_id
+    CheckIn:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        ticket_id:
+          type: string
+          format: uuid
+          nullable: true
+        event_id:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/ResultEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - event_id
+      - id
+      - result
+      - ticket_id
+    CheckInCreateRequest:
+      type: object
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        token:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        device_id:
+          type: string
+          maxLength: 100
+      required:
+      - event_id
+      - token
     CurrencyEnum:
       enum:
       - EUR
@@ -1281,6 +1689,153 @@ components:
           readOnly: true
       required:
       - message
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        event_id:
+          type: string
+          format: uuid
+        event_title:
+          type: string
+        public_reference:
+          type: string
+          maxLength: 24
+        status:
+          $ref: '#/components/schemas/OrderStatusEnum'
+        subtotal_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        discount_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        fees_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        tax_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        total_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          type: string
+          maxLength: 3
+        expires_at:
+          type: string
+          format: date-time
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        refunds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Refund'
+      required:
+      - created_at
+      - currency
+      - event_id
+      - event_title
+      - expires_at
+      - id
+      - items
+      - payments
+      - refunds
+      - subtotal_minor
+      - total_minor
+    OrderCreateRequest:
+      type: object
+      properties:
+        reservation_id:
+          type: string
+          format: uuid
+        promotion_code:
+          type: string
+          maxLength: 40
+      required:
+      - reservation_id
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        ticket_type_id:
+          type: string
+          format: uuid
+        event_seat_id:
+          type: string
+          format: uuid
+          nullable: true
+        quantity:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        name:
+          type: string
+          maxLength: 100
+        unit_price_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        discount_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        total_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+      required:
+      - event_seat_id
+      - id
+      - name
+      - quantity
+      - ticket_type_id
+      - total_minor
+      - unit_price_minor
+    OrderStatusEnum:
+      enum:
+      - PENDING
+      - PAYMENT_PROCESSING
+      - PAID
+      - FAILED
+      - EXPIRED
+      - CANCELLED
+      - PARTIALLY_REFUNDED
+      - REFUNDED
+      type: string
+      description: |-
+        * `PENDING` - Pending
+        * `PAYMENT_PROCESSING` - Payment_Processing
+        * `PAID` - Paid
+        * `FAILED` - Failed
+        * `EXPIRED` - Expired
+        * `CANCELLED` - Cancelled
+        * `PARTIALLY_REFUNDED` - Partially_Refunded
+        * `REFUNDED` - Refunded
     Organization:
       type: object
       properties:
@@ -1324,6 +1879,16 @@ components:
       required:
       - name
       - slug
+    OutcomeEnum:
+      enum:
+      - SUCCEEDED
+      - FAILED
+      - PENDING
+      type: string
+      description: |-
+        * `SUCCEEDED` - SUCCEEDED
+        * `FAILED` - FAILED
+        * `PENDING` - PENDING
     PaginatedEventList:
       type: object
       required:
@@ -1347,6 +1912,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Event'
+    PaginatedOrderList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
     PaginatedOrganizationList:
       type: object
       required:
@@ -1393,6 +1981,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Seat'
+    PaginatedTicketList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
     PaginatedVenueList:
       type: object
       required:
@@ -1497,6 +2108,80 @@ components:
           maxLength: 64
         accessibility_info:
           type: string
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        provider:
+          $ref: '#/components/schemas/PaymentProviderEnum'
+        status:
+          $ref: '#/components/schemas/PaymentStatusEnum'
+        amount_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          type: string
+          maxLength: 3
+        checkout_url:
+          type: string
+          format: uri
+          maxLength: 2000
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount_minor
+      - created_at
+      - currency
+      - id
+    PaymentCreateProviderEnum:
+      enum:
+      - MOCK
+      - STRIPE_TEST
+      type: string
+      description: |-
+        * `MOCK` - MOCK
+        * `STRIPE_TEST` - STRIPE_TEST
+    PaymentCreateRequest:
+      type: object
+      properties:
+        provider:
+          allOf:
+          - $ref: '#/components/schemas/PaymentCreateProviderEnum'
+          default: MOCK
+        scenario:
+          allOf:
+          - $ref: '#/components/schemas/ScenarioEnum'
+          default: success
+    PaymentProviderEnum:
+      enum:
+      - MOCK
+      - STRIPE_TEST
+      type: string
+      description: |-
+        * `MOCK` - Mock
+        * `STRIPE_TEST` - Stripe test
+    PaymentStatusEnum:
+      enum:
+      - CREATED
+      - PENDING
+      - SUCCEEDED
+      - FAILED
+      - CANCELLED
+      - REFUNDED
+      type: string
+      description: |-
+        * `CREATED` - Created
+        * `PENDING` - Pending
+        * `SUCCEEDED` - Succeeded
+        * `FAILED` - Failed
+        * `CANCELLED` - Cancelled
+        * `REFUNDED` - Refunded
     Profile:
       type: object
       properties:
@@ -1537,6 +2222,65 @@ components:
       required:
       - access
       - refresh
+    Refund:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/RefundStatusEnum'
+        amount_minor:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        currency:
+          type: string
+          maxLength: 3
+        reason:
+          type: string
+          maxLength: 500
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - amount_minor
+      - created_at
+      - currency
+      - id
+      - reason
+    RefundCreateRequest:
+      type: object
+      properties:
+        ticket_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 20
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+      required:
+      - reason
+      - ticket_ids
+    RefundStatusEnum:
+      enum:
+      - PENDING
+      - SUCCEEDED
+      - FAILED
+      type: string
+      description: |-
+        * `PENDING` - Pending
+        * `SUCCEEDED` - Succeeded
+        * `FAILED` - Failed
     RegisterRequest:
       type: object
       properties:
@@ -1682,6 +2426,22 @@ components:
           minLength: 1
       required:
       - email
+    ResultEnum:
+      enum:
+      - ACCEPTED
+      - DUPLICATE
+      - INVALID
+      - REVOKED
+      - WRONG_EVENT
+      - CLOSED
+      type: string
+      description: |-
+        * `ACCEPTED` - Accepted
+        * `DUPLICATE` - Duplicate
+        * `INVALID` - Invalid
+        * `REVOKED` - Revoked
+        * `WRONG_EVENT` - Wrong_Event
+        * `CLOSED` - Closed
     RoleEnum:
       enum:
       - MANAGER
@@ -1694,6 +2454,20 @@ components:
         * `EDITOR` - EDITOR
         * `FINANCE` - FINANCE
         * `SCANNER` - SCANNER
+    ScenarioEnum:
+      enum:
+      - success
+      - decline
+      - pending
+      - timeout
+      - delayed
+      type: string
+      description: |-
+        * `success` - success
+        * `decline` - decline
+        * `pending` - pending
+        * `timeout` - timeout
+        * `delayed` - delayed
     Seat:
       type: object
       properties:
@@ -1819,6 +2593,73 @@ components:
           minLength: 1
       required:
       - refresh
+    SimulationRequest:
+      type: object
+      properties:
+        payment_id:
+          type: string
+          format: uuid
+        outcome:
+          $ref: '#/components/schemas/OutcomeEnum'
+      required:
+      - outcome
+      - payment_id
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        event_id:
+          type: string
+          format: uuid
+        event_title:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        ticket_type_name:
+          type: string
+        seat_label:
+          type: string
+          nullable: true
+        order_id:
+          type: string
+          format: uuid
+        public_code:
+          type: string
+          maxLength: 24
+        status:
+          $ref: '#/components/schemas/TicketStatusEnum'
+        qr_url:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - event_id
+      - event_title
+      - id
+      - order_id
+      - qr_url
+      - start_at
+      - ticket_type_name
+    TicketStatusEnum:
+      enum:
+      - VALID
+      - USED
+      - REVOKED
+      - REFUNDED
+      type: string
+      description: |-
+        * `VALID` - Valid
+        * `USED` - Used
+        * `REVOKED` - Revoked
+        * `REFUNDED` - Refunded
     TicketType:
       type: object
       properties:
@@ -2054,6 +2895,13 @@ components:
       - city
       - name
       - organization_id
+    WebhookResult:
+      type: object
+      properties:
+        received:
+          type: boolean
+      required:
+      - received
   securitySchemes:
     cookieAuth:
       type: apiKey

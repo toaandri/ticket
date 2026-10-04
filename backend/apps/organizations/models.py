@@ -53,3 +53,12 @@ class Invitation(models.Model):
                 check=models.Q(role__in=["MANAGER", "EDITOR", "FINANCE", "SCANNER"]), name="valid_invitation_role"
             ),
         )
+
+
+class EventStaffAssignment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey("events.Event", on_delete=models.PROTECT, related_name="staff_assignments")
+    membership = models.ForeignKey(Membership, on_delete=models.PROTECT, related_name="event_assignments")
+
+    class Meta:
+        constraints = (models.UniqueConstraint(fields=["event", "membership"], name="unique_event_staff_assignment"),)

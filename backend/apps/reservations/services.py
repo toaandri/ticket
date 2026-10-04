@@ -38,15 +38,11 @@ def release_locked(reservation, status="EXPIRED"):
         item.save(update_fields=["status"])
     reservation.status = status
     reservation.save(update_fields=["status"])
-    # Orders are added by the checkout slice; this remains safe before that migration.
-    from django.apps import apps
+    from apps.orders.models import Order
 
-    if apps.get_model("orders", "Order", require_ready=False) if "order" in apps.all_models["orders"] else None:
-        from apps.orders.models import Order
-
-        Order.objects.filter(reservation=reservation, status__in=["PENDING", "PAYMENT_PROCESSING"]).update(
-            status="EXPIRED" if status == "EXPIRED" else "CANCELLED"
-        )
+    Order.objects.filter(reservation=reservation, status__in=["PENDING", "PAYMENT_PROCESSING"]).update(
+        status="EXPIRED" if status == "EXPIRED" else "CANCELLED"
+    )
 
 
 def expire_event_locked(event):
