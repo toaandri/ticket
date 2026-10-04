@@ -39,7 +39,8 @@ def clear_throttle_cache():
 
 
 @pytest.fixture
-def inventory_demo(db):
+def inventory_demo(db, settings):
+    settings.DEBUG = True
     owner = User.objects.create_user("owner@example.com", "example-password-93!", email_verified_at=timezone.now())
     org = create_organization(owner=owner, name="Synthetic demo", slug="demo")
     venue = create_venue(actor=owner, organization_id=org.pk, name="Demo Hall", city="Antananarivo")
