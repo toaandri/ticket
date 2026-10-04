@@ -35,7 +35,6 @@ def require_team_permission(*, actor, organization, role):
 @transaction.atomic
 def invite_member(*, actor, organization, email, role):
     import hashlib
-    import secrets
     from datetime import timedelta
 
     from django.utils import timezone
@@ -48,15 +47,19 @@ def invite_member(*, actor, organization, email, role):
     email = email.strip().lower()
     if Membership.objects.filter(organization=organization, user__email=email).exists():
         raise ValidationError("This account is already a member.")
-    token = secrets.token_urlsafe(32)
-    invitation = Invitation.objects.create(
+    invitation = Invitation(
         organization=organization,
         email=email,
         role=role,
         invited_by=actor,
-        token_hash=hashlib.sha256(token.encode()).hexdigest(),
         expires_at=timezone.now() + timedelta(days=7),
     )
+    token = invitation_secret(invitation)
+    invitation.token_hash = hashlib.sha256(token.encode()).hexdigest()
+    invitation.save()
+    from apps.notifications.services import enqueue
+
+    enqueue("team.invite", invitation.pk, key=f"invite:{invitation.pk}")
     AuditLog.objects.create(
         actor=actor, organization=organization, action="invitation.created", entity_id=invitation.pk
     )
@@ -114,3 +117,13 @@ def update_role(*, actor, organization, membership_id, role):
         actor=actor, organization=organization, action="membership.role_changed", entity_id=membership.pk
     )
     return membership
+
+
+def invitation_secret(invitation):
+    import base64
+    import hmac
+
+    from django.conf import settings
+
+    key = hmac.digest(settings.SECRET_KEY.encode(), b"ticket-invitation-v1", "sha256")
+    return base64.urlsafe_b64encode(hmac.digest(key, str(invitation.pk).encode(), "sha256")).decode().rstrip("=")

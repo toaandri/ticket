@@ -7,7 +7,9 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from apps.audit.models import AuditLog
 from apps.common.domain import Conflict, fingerprint, replay, require_role
 from apps.events.models import Event
+from apps.events.realtime import availability_changed
 from apps.inventory.models import InventoryBucket, SeatClaim, SeatClaimHistory
+from apps.notifications.services import enqueue
 from apps.orders.models import Order
 from apps.reservations.models import Reservation
 from apps.reservations.services import release_locked
@@ -173,6 +175,7 @@ def process_payment_event(*, payment_id, provider_event_id, status, amount, curr
             order.paid_at = timezone.now()
             order.save(update_fields=["status", "paid_at"])
             issue_tickets_locked(order)
+            enqueue("order.paid", order.pk, key=f"paid:{order.pk}")
             inbox.outcome = "PAID"
             AuditLog.objects.create(
                 actor=order.user,
@@ -196,6 +199,7 @@ def process_payment_event(*, payment_id, provider_event_id, status, amount, curr
     inbox.save()
     event.version += 1
     event.save(update_fields=["version"])
+    availability_changed(event)
     return payment
 
 
@@ -292,6 +296,10 @@ def complete_refund(refund):
         if order.paid_at:
             order.status = "PARTIALLY_REFUNDED" if remaining else "REFUNDED"
             order.save(update_fields=["status"])
+        enqueue("order.refund", current.pk, key=f"refund:{current.pk}")
+        event.version += 1
+        event.save(update_fields=["version"])
+        availability_changed(event)
         return current
 
 

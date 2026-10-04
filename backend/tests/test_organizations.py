@@ -72,6 +72,9 @@ def test_invitation_flow_requires_verified_matching_email_and_is_idempotent(auth
         f"/api/v1/organizations/{org.pk}/invitations/", {"email": guest.email, "role": "SCANNER"}
     )
     assert response.status_code == 201, response.data
+    from apps.notifications.services import process_outbox
+
+    process_outbox()
     token = mailoutbox[0].body.splitlines()[-1]
     assert Invitation.objects.get().token_hash != token
     assert auth_client(wrong).post("/api/v1/invitations/accept/", {"token": token}).status_code == 403

@@ -47,8 +47,6 @@ class InvitationCreateView(generics.GenericAPIView):
     serializer_class = InvitationCreateSerializer
 
     def post(self, request, pk):
-        from django.conf import settings
-        from django.core.mail import send_mail
         from django.shortcuts import get_object_or_404
         from rest_framework.response import Response
 
@@ -57,13 +55,7 @@ class InvitationCreateView(generics.GenericAPIView):
         organization = get_object_or_404(Organization.objects.filter(memberships__user=request.user), pk=pk)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        invitation, token = invite_member(actor=request.user, organization=organization, **serializer.validated_data)
-        send_mail(
-            "Invitation to Ticket",
-            f"Join {organization.name} using this token:\n{token}",
-            settings.DEFAULT_FROM_EMAIL,
-            [invitation.email],
-        )
+        invitation, _token = invite_member(actor=request.user, organization=organization, **serializer.validated_data)
         return Response(
             {
                 "id": invitation.pk,

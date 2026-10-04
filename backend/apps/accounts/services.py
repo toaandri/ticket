@@ -1,7 +1,5 @@
-from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core import signing
-from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -11,14 +9,17 @@ from .models import User
 VERIFY_SALT = "ticket.verify-email"
 
 
+def make_verification_token(user):
+    return signing.dumps({"user_id": str(user.pk), "email": user.email}, salt=VERIFY_SALT)
+
+
 def request_verification(user):
-    token = signing.dumps({"user_id": str(user.pk), "email": user.email}, salt=VERIFY_SALT)
-    send_mail(
-        "Verify your Ticket email",
-        f"Verify your email with this token:\n{token}",
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-    )
+    import uuid
+
+    from apps.notifications.services import enqueue
+
+    if not user.email_verified_at:
+        enqueue("account.verify", user.pk, key=f"verify:{uuid.uuid4()}")
 
 
 @transaction.atomic
@@ -38,13 +39,11 @@ def request_password_reset(email):
     user = User.objects.filter(email__iexact=email.strip(), is_active=True).first()
     if user is None:
         return
-    token = default_token_generator.make_token(user)
-    send_mail(
-        "Reset your Ticket password",
-        f"Account ID: {user.pk}\nReset token: {token}",
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-    )
+    import uuid
+
+    from apps.notifications.services import enqueue
+
+    enqueue("account.reset", user.pk, key=f"reset:{uuid.uuid4()}")
 
 
 @transaction.atomic

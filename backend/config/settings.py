@@ -352,3 +352,10 @@ LOGGING = {
         },
     },
 }
+
+CELERY_BEAT_SCHEDULE = {
+    "expire-and-reconcile": {"task": "apps.notifications.tasks.maintain_inventory", "schedule": 10.0},
+    "deliver-outbox": {"task": "apps.notifications.tasks.deliver_outbox", "schedule": 5.0},
+    "event-reminders": {"task": "apps.notifications.tasks.send_reminders", "schedule": 3600.0},
+}
+EMAIL_TIMEOUT = 15

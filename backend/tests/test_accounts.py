@@ -102,6 +102,9 @@ def test_verification_token_sets_verified_timestamp_and_rejects_tampering(
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     user = User.objects.create_user("alice@example.com", PASSWORD)
     request_verification(user)
+    from apps.notifications.services import process_outbox
+
+    process_outbox()
     token = mailoutbox[0].body.splitlines()[-1]
     assert api_client.post("/api/v1/auth/email-verify/", {"token": token + "x"}).status_code == 400
     assert api_client.post("/api/v1/auth/email-verify/", {"token": token}).status_code == 200
@@ -143,6 +146,9 @@ def test_reset_request_does_not_reveal_account_existence(api_client, mailoutbox,
     unknown = api_client.post("/api/v1/auth/password-reset/", {"email": "unknown@example.com"})
     assert known.status_code == unknown.status_code == 202
     assert known.data == unknown.data
+    from apps.notifications.services import process_outbox
+
+    process_outbox()
     assert len(mailoutbox) == 1
 
 

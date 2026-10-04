@@ -12,7 +12,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django_asgi_app = get_asgi_application()
 
 # WebSocket URL patterns will be registered as apps are implemented
-websocket_urlpatterns: list = []
+from django.urls import path  # noqa: E402
+
+from apps.events.consumers import AvailabilityConsumer  # noqa: E402
+
+websocket_urlpatterns = (path("ws/events/<uuid:event_id>/availability/", AvailabilityConsumer.as_asgi()),)
 
 application = ProtocolTypeRouter(
     {

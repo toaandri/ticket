@@ -10,7 +10,8 @@ const requestMock = jest.mocked(request);
 const saveRefreshMock = jest.mocked(saveRefresh);
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  jest.resetAllMocks();
+  jest.useRealTimers();
   getRefreshMock.mockResolvedValue(null);
   saveRefreshMock.mockResolvedValue(undefined);
 });

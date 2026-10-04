@@ -10,6 +10,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from apps.accounts.models import User
 from apps.common.domain import Conflict, fingerprint, replay
 from apps.events.models import Event, EventSeat
+from apps.events.realtime import availability_changed
 from apps.inventory.models import InventoryBucket, SeatClaim, SeatClaimHistory
 
 from .models import Reservation, ReservationItem
@@ -46,12 +47,18 @@ def release_locked(reservation, status="EXPIRED"):
 
 
 def expire_event_locked(event):
+    changed = False
     for reservation in (
         Reservation.objects.select_for_update()
         .filter(event=event, status="ACTIVE", expires_at__lte=timezone.now())
         .order_by("id")
     ):
         release_locked(reservation)
+        changed = True
+    if changed:
+        event.version += 1
+        event.save(update_fields=["version"])
+        availability_changed(event)
 
 
 @transaction.atomic
@@ -142,17 +149,21 @@ def create_hold(*, actor, event_id, items, key):
         bucket.save()
     event.version += 1
     event.save(update_fields=["version"])
+    availability_changed(event)
     return reservation
 
 
 @transaction.atomic
 def cancel_hold(*, actor, reservation_id):
     reference = get_object_or_404(Reservation, pk=reservation_id, user=actor)
-    Event.objects.select_for_update().get(pk=reference.event_id)
+    event = Event.objects.select_for_update().get(pk=reference.event_id)
     reservation = Reservation.objects.select_for_update().get(pk=reference.pk)
     if reservation.status == "CONSUMED":
         raise Conflict("A paid reservation cannot be cancelled as a hold.")
     release_locked(reservation, "CANCELLED")
+    event.version += 1
+    event.save(update_fields=["version"])
+    availability_changed(event)
     return reservation
 
 

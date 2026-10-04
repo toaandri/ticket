@@ -6,54 +6,19 @@ on:
 permissions:
   contents: read
 jobs:
-  tools:
+  postgres-libraries:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Prepare web dependencies
-        run: |
-          npm ci --prefix web
-          tar -czf /tmp/web-node-modules.tar.gz -C web node_modules
-          mkdir -p .workspace-tools
-          split -b 28000000 /tmp/web-node-modules.tar.gz .workspace-tools/web.part-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: web-workspace-tools-aa
-          path: .workspace-tools/web.part-aa
-          if-no-files-found: ignore
-          retention-days: 3
-      - uses: actions/upload-artifact@v4
-        with:
-          name: web-workspace-tools-ab
-          path: .workspace-tools/web.part-ab
-          if-no-files-found: ignore
-          retention-days: 3
-      - uses: actions/upload-artifact@v4
-        with:
-          name: web-workspace-tools-ac
-          path: .workspace-tools/web.part-ac
-          if-no-files-found: ignore
-          retention-days: 3
-      - name: Prepare PostgreSQL development binaries
+      - name: Bundle PostgreSQL extension libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-16 redis-server
-          mkdir -p /tmp/db-tools/lib /tmp/db-tools/bin /tmp/db-tools/share
-          cp -a /usr/lib/postgresql/16/bin/. /tmp/db-tools/bin/
-          cp -a /usr/share/postgresql/16/. /tmp/db-tools/share/
-          cp /usr/bin/redis-server /tmp/db-tools/bin/
-          for binary in /usr/lib/postgresql/16/bin/postgres /usr/lib/postgresql/16/bin/initdb /usr/lib/postgresql/16/bin/pg_ctl /usr/lib/postgresql/16/bin/psql /usr/bin/redis-server; do
-            ldd "$binary" | awk '/=> \/.*\(/ {print $3}' | while read -r library; do
-              case "$library" in */libc.so.*|*/libm.so.*|*/libpthread.so.*|*/libdl.so.*|*/librt.so.*|*/libresolv.so.*) continue;; esac
-              cp -L "$library" /tmp/db-tools/lib/
-            done
-          done
-          tar -czf /tmp/db-tools.tar.gz -C /tmp db-tools
+          sudo apt-get install -y postgresql-16
+          tar -czf /tmp/postgres-extensions.tar.gz -C /usr/lib/postgresql/16 lib
       - uses: actions/upload-artifact@v4
         with:
-          name: database-workspace-tools
-          path: /tmp/db-tools.tar.gz
+          name: postgres-extension-libraries
+          path: /tmp/postgres-extensions.tar.gz
           retention-days: 3

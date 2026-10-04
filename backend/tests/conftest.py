@@ -87,5 +87,5 @@ def inventory_demo(db, settings):
         per_order_limit=2,
         venue_section_id=section.pk,
     )
-    publish_event(actor=owner, event_id=event.pk)
+    event = publish_event(actor=owner, event_id=event.pk)
     return owner, org, venue, event, ga, assigned
