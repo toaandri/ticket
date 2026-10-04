@@ -1,5 +1,5 @@
 # docker-compose.test.yml — isolated test environment with real PostgreSQL
-# Usage: docker compose -f docker-compose.test.yml run --rm backend-test
+# Usage: docker compose -f docker-compose.test.yml run --rm backend_test
 
 services:
   postgres_test:
@@ -28,11 +28,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/backend.Dockerfile
-    command: >
-      sh -c "
-        python manage.py migrate --noinput &&
-        pytest ${PYTEST_ARGS:-} --tb=short -x
-      "
+    command: ["sh", "-c", "python manage.py migrate --noinput && pytest --tb=short -x"]
     environment:
       DATABASE_URL: postgresql://ticket:ticket@postgres_test:5432/ticket_test
       REDIS_URL: redis://redis_test:6379/0

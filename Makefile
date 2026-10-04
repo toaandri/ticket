@@ -14,7 +14,7 @@ help:
 	@echo ""
 	@echo "  Ticket — available targets"
 	@echo ""
-	@echo "  setup            Copy .env.example → .env (once)"
+	@echo "  setup            Create .env with random signing keys (once)"
 	@echo "  up               Start all services (build if needed)"
 	@echo "  down             Stop and remove containers"
 	@echo "  restart          Restart all services"
@@ -77,7 +77,7 @@ schema:
 	cd packages/api-client && npm ci && npm run generate
 
 concurrency-test:
-	$(COMPOSE_TEST) run --rm -e PYTEST_ARGS="tests/test_inventory.py tests/test_checkout.py -k "race or concurrent or scanners" -v" backend_test
+	$(COMPOSE_TEST) run --rm backend_test sh -c 'python manage.py migrate --noinput && pytest tests/test_inventory.py tests/test_checkout.py -k "race or concurrent or scanners" --tb=short -x -v'
 
 web-test:
 	cd web && npm test -- --run
