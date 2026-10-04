@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
@@ -9,9 +10,20 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .serializers import LogoutSerializer, ProfileSerializer, RegisterSerializer
+from .serializers import (
+    LogoutSerializer,
+    MessageSerializer,
+    ProfileSerializer,
+    RefreshResultSerializer,
+    RegisterSerializer,
+    RegistrationResultSerializer,
+    ResetConfirmSerializer,
+    ResetRequestSerializer,
+    TokenSerializer,
+)
 
 
+@extend_schema_view(post=extend_schema(request=RegisterSerializer, responses={201: RegistrationResultSerializer}))
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = (AllowAny,)
@@ -49,6 +61,7 @@ class LoginView(TokenObtainPairView):
         return super().post(request, *args, **kwargs)
 
 
+@extend_schema_view(post=extend_schema(responses=RefreshResultSerializer))
 class RefreshView(TokenRefreshView):
     from .serializers import SecureRefreshSerializer
 
@@ -57,6 +70,7 @@ class RefreshView(TokenRefreshView):
     throttle_scope = "login"
 
 
+@extend_schema_view(post=extend_schema(responses={204: None}))
 class LogoutView(APIView):
     serializer_class = LogoutSerializer
 
@@ -86,6 +100,7 @@ class MeView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
+@extend_schema_view(post=extend_schema(request=None, responses={202: MessageSerializer}))
 class VerificationRequestView(APIView):
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "login"
@@ -97,7 +112,9 @@ class VerificationRequestView(APIView):
         return Response({"message": "Verification email sent."}, status=status.HTTP_202_ACCEPTED)
 
 
+@extend_schema_view(post=extend_schema(request=TokenSerializer, responses={200: MessageSerializer}))
 class VerifyEmailView(APIView):
+    serializer_class = TokenSerializer
     permission_classes = (AllowAny,)
     authentication_classes = ()
     throttle_classes = (ScopedRateThrottle,)
@@ -113,7 +130,9 @@ class VerifyEmailView(APIView):
         return Response({"message": "Email verified."})
 
 
+@extend_schema_view(post=extend_schema(request=ResetRequestSerializer, responses={202: MessageSerializer}))
 class PasswordResetRequestView(APIView):
+    serializer_class = ResetRequestSerializer
     permission_classes = (AllowAny,)
     authentication_classes = ()
     throttle_classes = (ScopedRateThrottle,)
@@ -129,7 +148,9 @@ class PasswordResetRequestView(APIView):
         return Response({"message": "If this account exists, a reset email has been sent."}, status=202)
 
 
+@extend_schema_view(post=extend_schema(request=ResetConfirmSerializer, responses={200: MessageSerializer}))
 class PasswordResetConfirmView(APIView):
+    serializer_class = ResetConfirmSerializer
     permission_classes = (AllowAny,)
     authentication_classes = ()
     throttle_classes = (ScopedRateThrottle,)

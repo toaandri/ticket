@@ -85,3 +85,18 @@ class SecureRefreshSerializer(serializers.Serializer):
         if user is None or token.get(api_settings.REVOKE_TOKEN_CLAIM) != get_md5_hash_password(user.password):
             raise AuthenticationFailed("Session revoked. Sign in again.")
         return TokenRefreshSerializer().validate(attrs)
+
+
+class MessageSerializer(serializers.Serializer):
+    message = serializers.CharField(read_only=True)
+
+
+class RegistrationResultSerializer(serializers.Serializer):
+    user = ProfileSerializer(read_only=True)
+    access = serializers.CharField(read_only=True)
+    refresh = serializers.CharField(read_only=True)
+
+
+class RefreshResultSerializer(serializers.Serializer):
+    access = serializers.CharField(read_only=True)
+    refresh = serializers.CharField(read_only=True)

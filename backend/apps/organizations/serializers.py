@@ -31,3 +31,18 @@ class InvitationAcceptSerializer(serializers.Serializer):
 
 class RoleSerializer(serializers.Serializer):
     role = serializers.ChoiceField(choices=["MANAGER", "EDITOR", "FINANCE", "SCANNER"])
+
+
+class InvitationResultSerializer(InvitationCreateSerializer):
+    id = serializers.UUIDField(read_only=True)
+    expires_at = serializers.DateTimeField(read_only=True)
+
+
+class MembershipResultSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    role = serializers.CharField(read_only=True)
+
+
+class AcceptanceResultSerializer(serializers.Serializer):
+    organization_id = serializers.UUIDField(read_only=True)
+    role = serializers.CharField(read_only=True)

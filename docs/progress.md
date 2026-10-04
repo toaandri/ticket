@@ -73,3 +73,13 @@ None — Phase 0 is infrastructure only. All app code starts in Phase 1.
 ## 2026-10-04 — scaffold audit and initial repairs
 
 See [repository-audit.md](repository-audit.md) for the observed baseline, exact corrections, checks and continuation gates. The earlier Phase 0 completion claim is not runtime-verified. Build metadata, backend Docker installation, web entry point, Vite typings and client lint configuration were repaired. Static checks passed; application tests are blocked by executor networking and missing dependencies. No functional phase is marked complete.
+
+## 2026-10-04 — account and organization foundation
+
+Implemented custom UUID User and migrations; account register/login/refresh/logout/profile; verification/password reset; organization ownership and tenant-scoped reads; verified invitations and role management; application audit records. Web and Expo account workspaces use actual backend endpoints. Added web/mobile lockfiles, React interaction tests and native component tests. OpenAPI generation now validates without warnings and has a committed snapshot; CI checks model/migration drift explicitly.
+
+Verified on GitHub Actions run 37221763027 before the final schema/native-test update: 22 PostgreSQL tests passed, 94% Python statement coverage; 3 web interaction tests passed and Vite build succeeded; Python lint/format and mobile lint/typecheck succeeded. Native component tests and strict schema snapshot checks are being run on the final commit. No emulator/device or fresh Docker Compose smoke test has been claimed.
+
+The executor proxy remains unavailable. Development dependencies were recovered as GitHub Actions artifacts and installed locally. Django `check`, `makemigrations --check --dry-run` (with unavailable local DB warning), Ruff checks and strict schema generation pass locally. PostgreSQL integration tests run on real PostgreSQL in CI.
+
+Outstanding: all event/venue/inventory/payment/ticket/gate functionality and the later specification phases; durable notification/outbox handling; seeded demo data; fresh Docker and mobile device checks. No final release tag or completed-product claim.

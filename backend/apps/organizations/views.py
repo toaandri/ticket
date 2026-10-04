@@ -1,16 +1,25 @@
 from django.db import IntegrityError, transaction
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics
 from rest_framework.exceptions import ValidationError
 
 from .models import Organization
-from .serializers import OrganizationSerializer
+from .serializers import (
+    AcceptanceResultSerializer,
+    InvitationResultSerializer,
+    MembershipResultSerializer,
+    OrganizationSerializer,
+)
 from .services import create_organization
 
 
 class OrganizationListView(generics.ListCreateAPIView):
+    queryset = Organization.objects.none()
     serializer_class = OrganizationSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Organization.objects.none()
         return Organization.objects.filter(memberships__user=self.request.user).order_by("created_at", "id")
 
     def perform_create(self, serializer):
@@ -25,10 +34,13 @@ class OrganizationDetailView(generics.RetrieveAPIView):
     serializer_class = OrganizationSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Organization.objects.none()
         # Scope before lookup: guessed UUIDs do not reveal another organization's existence.
         return Organization.objects.filter(memberships__user=self.request.user)
 
 
+@extend_schema_view(post=extend_schema(responses={201: InvitationResultSerializer}))
 class InvitationCreateView(generics.GenericAPIView):
     from .serializers import InvitationCreateSerializer
 
@@ -63,6 +75,7 @@ class InvitationCreateView(generics.GenericAPIView):
         )
 
 
+@extend_schema_view(post=extend_schema(responses=AcceptanceResultSerializer))
 class InvitationAcceptView(generics.GenericAPIView):
     from .serializers import InvitationAcceptSerializer
 
@@ -79,6 +92,7 @@ class InvitationAcceptView(generics.GenericAPIView):
         return Response({"organization_id": membership.organization_id, "role": membership.role})
 
 
+@extend_schema_view(patch=extend_schema(responses=MembershipResultSerializer))
 class MembershipRoleView(generics.GenericAPIView):
     from .serializers import RoleSerializer
 

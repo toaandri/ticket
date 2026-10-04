@@ -97,7 +97,7 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Check for migration conflicts
-        run: python manage.py migrate --check --no-input 2>/dev/null || python manage.py migrate --no-input
+        run: python manage.py makemigrations --check --dry-run
 
       - name: Run migrations
         run: python manage.py migrate --no-input
@@ -170,7 +170,7 @@ jobs:
         run: python manage.py migrate --no-input
 
       - name: Generate schema
-        run: python manage.py spectacular --color --file /tmp/schema-generated.yml
+        run: python manage.py spectacular --validate --fail-on-warn --file /tmp/schema-generated.yml
 
       - name: Check schema drift (if committed schema exists)
         run: |

@@ -4,27 +4,20 @@ A portfolio-grade, open-source event management and ticketing platform built as 
 
 ## Project Status
 
-**Current Phase: Phase 0 — Discovery and Scaffold** (Infrastructure only)
+**Accounts and organization workspaces implemented; ticketing development remains in progress.**
 
-- [x] Monorepo structure created
-- [x] Docker Compose configuration
-- [x] CI/CD pipeline (GitHub Actions)
-- [x] Documentation structure
-- [ ] Backend implementation (Django + DRF)
-- [ ] Web frontend (React + TypeScript + Vite)
-- [ ] Mobile app (React Native + Expo)
-- [ ] Database migrations & models
-- [ ] Authentication & authorization
-- [ ] Event & venue management
-- [ ] Inventory & reservation engine
-- [ ] Orders, payments & checkout
-- [ ] QR tickets & check-in
-- [ ] Notifications & analytics
-- [ ] Demo data & deterministic seeding
-- [ ] Automated tests (unit, integration, concurrency)
-- [ ] Portfolio release v1.0.0
+Implemented:
+- UUID accounts, normalized unique email, password hashing and validation.
+- JWT login, refresh rotation, logout and password-change session revocation.
+- Email verification and password reset via local mail delivery.
+- Organization creation and tenant-scoped discovery; verified staff invitations and role restrictions.
+- Append-only application audit records for organization and staff changes.
+- Responsive web account/organization workspace and a native Expo account workspace.
+- PostgreSQL integration tests, web interaction tests, dependency lockfiles and validated OpenAPI snapshot.
 
-> **Note**: This is a portfolio/demo project. No real payments, settlement, tax compliance, or PCI card handling. Uses mock payments by default; Stripe Test Mode is optional.
+Not yet implemented: event/venue management, seat inventory, holds, orders, mock payments, QR tickets, check-in, refunds, promotions, analytics, notifications/outbox and deterministic demo seed. Optional Stripe remains test-only and is not implemented.
+
+This is a portfolio demo under development. No real payments are processed. Mobile type and component tests do not replace device/emulator verification.
 
 ## Architecture
 
@@ -70,8 +63,7 @@ make up
 # Run migrations
 make migrate
 
-# Seed demo data (idempotent)
-make seed
+# Seed/demo fixtures remain under development; register a new account in the web UI.
 
 # Access applications
 # Web:      http://localhost:5173
@@ -80,15 +72,20 @@ make seed
 # Mailpit:  http://localhost:8025
 ```
 
-### Demo Accounts (after seeding)
+### Accounts
 
-| Role | Email | Password |
-|------|-------|----------|
-| Platform Admin | admin@ticket.local | demo123 |
-| Org Owner | owner@org1.local | demo123 |
-| Org Manager | manager@org1.local | demo123 |
-| Gate Scanner | scanner@org1.local | demo123 |
-| Attendee | attendee@local | demo123 |
+The deterministic seed is not implemented yet; `make seed` is a future task. Create an account through the web sign-up screen or `POST /api/v1/auth/register/`. There are no seeded demo credentials at this stage.
+
+### Mobile development
+
+```bash
+cd mobile
+npm ci
+# Physical device: use your development machine's LAN address.
+EXPO_PUBLIC_API_BASE_URL=http://192.168.1.10:8000/api/v1 npm start
+```
+
+Android emulator defaults to `http://10.0.2.2:8000/api/v1`; iOS simulator defaults to localhost. The native app stores refresh tokens with Expo SecureStore. Web tokens stay in memory; reloading the web page requires signing in again. Use HTTPS outside local development.
 
 ## Key Features
 
