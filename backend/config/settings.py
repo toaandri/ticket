@@ -7,6 +7,7 @@ Values are loaded from environment variables (via python-decouple / .env file).
 import os
 from pathlib import Path
 
+import structlog
 from decouple import Csv, config
 
 # ---------------------------------------------------------------------------
@@ -325,7 +326,7 @@ LOGGING = {
     "formatters": {
         "json": {
             "()": "structlog.stdlib.ProcessorFormatter",
-            "processor": "structlog.dev.ConsoleRenderer" if DEBUG else "structlog.processors.JSONRenderer",
+            "processor": structlog.dev.ConsoleRenderer() if DEBUG else structlog.processors.JSONRenderer(),
         },
     },
     "handlers": {
