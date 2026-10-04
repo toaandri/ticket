@@ -1,0 +1,63 @@
+name: Prepare development dependencies
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/prepare-runtime.yml
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Download backend runtime wheels
+        run: |
+          python - <<'PY'
+          import pathlib, tomllib
+          with open('backend/pyproject.toml', 'rb') as f:
+              project = tomllib.load(f)['project']
+          pathlib.Path('/tmp/runtime-requirements.txt').write_text('\n'.join(project['dependencies']))
+          PY
+          pip download -r /tmp/runtime-requirements.txt -d /tmp/runtime-wheels
+      - name: Download test and lint wheels
+        run: pip download pytest==8.2.2 pytest-django==4.8.0 pytest-asyncio==0.23.7 coverage==7.5.4 ruff==0.5.2 -d /tmp/test-wheels
+      - name: Upload runtime wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-runtime-wheels
+          path: /tmp/runtime-wheels
+          retention-days: 3
+      - name: Upload test wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-wheels
+          path: /tmp/test-wheels
+          retention-days: 3
+      - name: Format Python source
+        run: |
+          pip install --no-index --find-links=/tmp/test-wheels ruff==0.5.2
+          cd backend
+          ruff check --fix .
+          ruff format .
+      - name: Resolve web lockfile
+        run: npm install --package-lock-only --ignore-scripts --prefix web
+      - name: Resolve mobile lockfile
+        run: npm install --package-lock-only --ignore-scripts --prefix mobile
+      - name: Upload formatted source and lockfiles
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prepared-source
+          path: |
+            backend/**/*.py
+            web/package-lock.json
+            mobile/package-lock.json
+          include-hidden-files: false
+          retention-days: 3

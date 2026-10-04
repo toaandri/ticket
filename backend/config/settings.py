@@ -4,7 +4,6 @@ Django settings for Ticket platform.
 Values are loaded from environment variables (via python-decouple / .env file).
 """
 
-import os
 from pathlib import Path
 
 import structlog
@@ -102,7 +101,7 @@ ASGI_APPLICATION = "config.asgi.application"
 # ---------------------------------------------------------------------------
 import dj_database_url  # noqa: E402
 
-_default_db = f"postgresql://ticket:ticket@localhost:5432/ticket"
+_default_db = "postgresql://ticket:ticket@localhost:5432/ticket"
 DATABASES = {
     "default": dj_database_url.config(
         env="DATABASE_URL",

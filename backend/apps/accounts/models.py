@@ -37,11 +37,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ()
     objects = UserManager()
 
     class Meta:
-        constraints = [models.UniqueConstraint(Lower("email"), name="accounts_user_email_ci_unique")]
+        constraints = (models.UniqueConstraint(Lower("email"), name="accounts_user_email_ci_unique"),)
 
     def save(self, *args, **kwargs):
         self.email = self.email.strip().lower()

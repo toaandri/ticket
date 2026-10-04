@@ -14,9 +14,9 @@ from .serializers import LogoutSerializer, ProfileSerializer, RegisterSerializer
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
-    permission_classes = [AllowAny]
-    authentication_classes = []
-    throttle_classes = [ScopedRateThrottle]
+    permission_classes = (AllowAny,)
+    authentication_classes = ()
+    throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "login"
 
     def create(self, request, *args, **kwargs):
@@ -33,7 +33,7 @@ class RegisterView(generics.CreateAPIView):
 
 
 class LoginView(TokenObtainPairView):
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "login"
 
     def post(self, request, *args, **kwargs):
@@ -48,7 +48,7 @@ class LoginView(TokenObtainPairView):
 
 
 class RefreshView(TokenRefreshView):
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "login"
 
 
@@ -70,7 +70,7 @@ class LogoutView(APIView):
 
 class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = ProfileSerializer
-    http_method_names = ["get", "patch", "head", "options"]
+    http_method_names = ("get", "patch", "head", "options",)
 
     def get_object(self):
         return self.request.user

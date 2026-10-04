@@ -8,8 +8,8 @@ from .models import User
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "display_name", "email_verified_at", "created_at"]
-        read_only_fields = ["id", "email", "email_verified_at", "created_at"]
+        fields = ("id", "email", "display_name", "email_verified_at", "created_at",)
+        read_only_fields = ("id", "email", "email_verified_at", "created_at",)
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -17,7 +17,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["email", "display_name", "password"]
+        fields = ("email", "display_name", "password",)
 
     def validate_email(self, value):
         value = value.strip().lower()

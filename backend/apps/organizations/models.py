@@ -27,8 +27,8 @@ class Membership(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [
+        constraints = (
             models.UniqueConstraint(fields=["organization", "user"], name="unique_org_membership"),
             models.CheckConstraint(check=models.Q(role__in=["OWNER", "MANAGER", "EDITOR", "FINANCE", "SCANNER"]),
                                    name="valid_membership_role"),
-        ]
+        )
