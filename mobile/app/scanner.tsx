@@ -11,6 +11,10 @@ import { useSession } from '../src/session';
 import { Alert, Button, Input, Loading, Page, SignInPrompt, styles } from '../src/ui';
 
 export default function Scanner() {
+  const { user } = useSession();
+  return <ScannerSession key={user?.id ?? 'guest'} />;
+}
+function ScannerSession() {
   const { user, ready, api } = useSession(); const [permission, requestPermission] = useCameraPermissions(); const [eventId, setEventId] = useState(''); const [token, setToken] = useState(''); const [camera, setCamera] = useState(false); const [result, setResult] = useState<CheckIn | null>(null); const [error, setError] = useState<unknown>(null); const [busy, setBusy] = useState(false); const lock = useRef(false); const lastRequest = useRef<{ payload: string; key: string } | null>(null);
   const events = useQuery({ queryKey: ['staff-events', user?.id], queryFn: () => api<Paginated<TicketEvent>>('/staff/events/'), enabled: !!user });
   useEffect(() => { return () => { lock.current = false; }; }, []);

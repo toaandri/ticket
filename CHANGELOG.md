@@ -2,6 +2,14 @@
 
 ## Unreleased — functional portfolio application
 
+- Added a polished editorial web interface: light/dark themes, original CSS posters, floating ticket artwork, optional animations, saved events, URL filters, grid/list layouts and Ctrl/Cmd+K quick search.
+- Added guided checkout, seat orientation/legend, selected totals, automatic pending-payment polling, bounded opaque idempotency keys and clean terminal-state retries.
+- Refined native discovery, reduced-motion-aware page transitions and pull-to-refresh; isolated checkout state on event/account changes and stopped terminal-order polling.
+- Added daily sales visualization from API metrics and reset organization-specific selections when switching workspaces.
+- Fixed rollback for unexpected API exceptions and added a PostgreSQL regression test.
+- Removed the newly disclosed sprintf-js chain using a consumer-scoped js-yaml override, with a YAML compatibility check in mobile tests; existing advisory exceptions were not expanded.
+- Added Windows-compatible secure environment setup, six real-API browser journeys and updated README screenshots/instructions.
+
 - Guarded web/mobile sessions against late refresh/login responses and old-account data after logout or account switching; serialized native refresh persistence and kept temporary outages retryable.
 - Made the mobile dependency audit runnable on Windows and explicitly online, with incomplete reports rejected.
 - Replaced the scaffold with account/tenant, venue/event, PostgreSQL inventory, order/promotion, mock/optional Stripe TEST payment, ticket and gate services.

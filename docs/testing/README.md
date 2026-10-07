@@ -1,5 +1,16 @@
 # Verification
 
+## Interface and full-stack verification (2026-10-08, Windows)
+
+- Compose stack built and started: PostgreSQL/Redis/API/Mailpit healthy, migration service exited successfully, worker and scheduler running. A fresh synthetic seed was created without production credentials.
+- Backend: 59 PostgreSQL tests passed (132.21s), including unexpected-exception rollback. Overall branch-enabled coverage 84%; combined critical services 90%. Ruff lint/format, migration drift and eleven-file domain mypy checks passed. Generated/committed OpenAPI SHA-256 matched after LF normalization: `d7b1163cd1e38efe901a89ccfde4a6934e2485d1c6c08f618bfc260105556766`. Four separate-connection race tests passed again (79.97s on the Windows bind mount).
+- Web: 18 unit tests passed; lint, TypeScript and Vite production build passed. New tests cover theme/motion preferences, keyboard dialog focus/navigation, URL filters, grid/list state and saved events, including blocked/corrupt storage.
+- Playwright Chromium: all six real-API journeys passed (44.3s). This includes reservation/release, successful checkout, externally completed pending-payment polling, decline/retry, private wallet QR, reports/partial refund, assigned scanner rejection, shortlist, filters, keyboard search, theme persistence and reduced motion. No horizontal overflow at 320/390/768/1440px. Tests use no blanket retries. README captures are opt-in through `CAPTURE_README=1`; QR areas are masked.
+- Mobile: clean `npm ci` from the updated lockfile, six component/session tests and the actual NYC YAML configuration compatibility check passed. Client lint/types and Android/Web exports are checked; captures of the Expo web target remain explicitly distinct from native-device acceptance.
+- Dependency audits: Python requirements and web production dependencies reported no known vulnerabilities. The mobile audit reports the four original advisories. The new sprintf-js advisory was removed by a narrowly scoped js-yaml consumer override; no additional advisory exception or later review deadline was added.
+
+Host Node 24.13.0 is below some web test packages' declared minimum; documented fresh setups require Node 24.15+. Historical Django migrations emit deprecation warnings for `CheckConstraint.check`; Django 5.2 execution and migration drift checks pass. Physical-device and optional external Stripe TEST checks below remain unverified; no public deployment or production tag is claimed.
+
 ## Session regression validation (2026-10-05, Windows)
 
 Web: 13 tests passed (`npm test -- --run`), including logout/refresh races, account switching, obsolete response rejection, interrupted sign-in, transient outage retry, serialized refresh-storage writes and storage failure before login. Mobile: 6 tests passed (`npm test -- --watch=false`), including local logout while refresh is pending, old refresh rejection after another login and retry after a network outage. Both clients passed lint/TypeScript; the web production build and Android Hermes export passed. The shared code is exercised through real client providers and storage adapters with controlled asynchronous responses. Physical SecureStore/camera checks remain open.

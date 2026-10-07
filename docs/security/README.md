@@ -30,6 +30,10 @@ Organization finance reports omit holder QR tokens; wallet endpoints require the
 
 Exact exceptions and review expiry are in `mobile-advisories.json`. CI prints every advisory, rejects new advisory IDs and fails after the review deadline. Exceptions are not proof that affected packages are safe. Web production dependency audit reports no findings at the recorded revision. Python audit results are recorded in testing/progress when verified.
 
+### 2026-10-08: removed the new sprintf-js finding
+
+[GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c) has no patched sprintf-js release at this review. Rather than accepting another exception, the mobile manifest overrides only `@istanbuljs/load-nyc-config`'s `js-yaml` dependency to 4.3.2 (already used by Expo). That consumer uses the supported `.load` API. Its YAML configuration loader is tested by `mobile/scripts/verify-nyc-config.cjs` before every mobile test run. The lockfile no longer contains sprintf-js or argparse 1.x. Native component tests and Android compilation are rechecked with this override. The four existing advisory exceptions and their deadline are unchanged; the audit prints those four findings and rejects anything new.
+
 ## Privacy and retention
 
 Synthetic data only in demo fixtures. Orders, money, audit and scan history are retained for traceability; no automatic financial purge exists. A production retention policy must specify legal periods, privacy access/export handling, account anonymization and encrypted backup lifecycle. Operational logs should contain request IDs and aggregate IDs rather than PII. Protect backups, SMTP inboxes and screenshots; documentation screenshots mask live QR areas. No personal production user data was used to validate the project.

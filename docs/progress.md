@@ -1,5 +1,15 @@
 # Current progress
 
+## Latest continuation — 2026-10-08, advanced interface and delivery
+
+The user's requested first push was completed as `6c61493` on `main`, preserving the existing functional implementation and adding the session race fixes. Its GitHub run passed all functional/schema/secret jobs but failed dependency review on the newly reported sprintf-js advisory. The new delivery removes that chain rather than widening the advisory baseline.
+
+Implemented the editorial responsive interface, original poster/ticket artwork, light/dark tokens, optional decorative motion and OS reduced-motion support, browser shortlist, URL filters/order, grid/list layouts, native dialog quick search and guided seat/hold/checkout flow. Added actual daily-sales charts, organization-switch cleanup, mobile posters/pull-to-refresh/press feedback, account/event-isolated native checkout state and account-isolated scanner state. Pending order polling stops after a terminal outcome. Unexpected API exceptions now mark atomic request writes for rollback. Environment setup works directly in PowerShell and preserves existing signing keys.
+
+Verification for this continuation: 59 real PostgreSQL backend tests; four repeated separate-connection race tests; 18 web tests; six mobile tests plus an actual YAML-loader compatibility check; backend Ruff/format/migration/mypy and matching OpenAPI fingerprints; web production build and Android/Web exports. All six real API browser journeys passed (44.3s), including pending/declined payment outcomes, refunds, assigned gate access, shortlist/keyboard navigation and responsive/reduced-motion checks. Web/Python production audits are clean; mobile reports only the four existing upstream advisory IDs, with unchanged exceptions/deadline. README and real synthetic screenshots have been refreshed. Detailed commands/results are in `testing/README.md`.
+
+Delivery targets `main` with normal fast-forward pushes, no release tag or public deployment. Physical-device and optional external Stripe TEST validation, upstream mobile fixes and production HTTPS/security review remain release gates, not completed checks. The earlier continuation notes below retain their historical local-only status; the first push above supersedes that status. Final commit and CI result are reported with delivery, not assumed here.
+
 The repository now contains a functional synthetic ticketing application, replacing the original empty domain scaffold. Current backend/client tests and known integration limits are in `testing/README.md`. All previous scaffold-only notes in `repository-audit.md` are historical findings.
 
 Implemented: accounts/tenants, venues/events, GA/assigned/mixed holds, integer order/promotions, mock and optional Stripe TEST, compensation/refunds, private QR/PDF, assigned gate, notifications/outbox/realtime, metrics/CSV/audit/moderation, web and Expo interfaces, guarded seed and documentation. No live payment or public hosting was used.

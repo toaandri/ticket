@@ -20,7 +20,7 @@ from django.http import Http404
 from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
-from rest_framework.views import exception_handler
+from rest_framework.views import exception_handler, set_rollback
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +46,7 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Respons
         return response
 
     # Unhandled server error — log and return 500
+    set_rollback()
     logger.exception("Unhandled exception: %s", exc, extra={"request_id": request_id})
     return Response(
         {

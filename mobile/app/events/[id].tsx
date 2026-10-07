@@ -10,6 +10,10 @@ import { useSession } from '../../src/session';
 import { Alert, Button, Countdown, Input, Loading, Page, styles } from '../../src/ui';
 
 export default function EventDetails() {
+  const { id } = useLocalSearchParams<{ id: string }>(); const { user } = useSession();
+  return <EventCheckout key={`${id}:${user?.id ?? 'guest'}`} />;
+}
+function EventCheckout() {
   const { id } = useLocalSearchParams<{ id: string }>(); const { api, user } = useSession(); const queries = useQueryClient();
   const event = useQuery({ queryKey: ['event', id], queryFn: () => api<TicketEvent>(`/events/${id}/`) });
   const availability = useQuery({ queryKey: ['availability', id], queryFn: () => api<Availability>(`/events/${id}/availability/`), refetchInterval: 10000 });
@@ -18,7 +22,7 @@ export default function EventDetails() {
   const [scenario, setScenario] = useState('success'); const [error, setError] = useState<unknown>(null); const [busy, setBusy] = useState(false); const [now, setNow] = useState(Date.now());
   const holdRequest = useRef<{ payload: string; key: string } | null>(null); const orderRequest = useRef<{ payload: string; key: string } | null>(null); const paymentKey = useRef(randomUUID());
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
-  const currentOrder = useQuery({ queryKey: ['checkout-order', order?.id], queryFn: () => api<Order>(`/orders/${order!.id}/`), enabled: !!order, refetchInterval: order?.status === 'PAYMENT_PROCESSING' ? 3000 : false });
+  const currentOrder = useQuery({ queryKey: ['checkout-order', user?.id, order?.id], queryFn: () => api<Order>(`/orders/${order!.id}/`), enabled: !!order && !!user, refetchInterval: query => query.state.data?.status === 'PAYMENT_PROCESSING' ? 3000 : false });
   const displayedOrder = currentOrder.data ?? order;
   async function action(callback: () => Promise<unknown>) { setBusy(true); setError(null); try { await callback(); await queries.invalidateQueries({ queryKey: ['availability', id] }); } catch (err) { setError(err); } finally { setBusy(false); } }
   async function reserve() {
@@ -27,8 +31,8 @@ export default function EventDetails() {
     const payload = JSON.stringify({ event_id: id, items }); if (holdRequest.current?.payload !== payload) holdRequest.current = { payload, key: randomUUID() };
     setHold(await api<Reservation>('/reservations/', post(JSON.parse(payload), holdRequest.current.key))); setOrder(null); orderRequest.current = null; paymentKey.current = randomUUID();
   }
-  async function checkout() { if (!hold) return; const payload = JSON.stringify({ reservation_id: hold.id, promotion_code: promotion }); if (orderRequest.current?.payload !== payload) orderRequest.current = { payload, key: randomUUID() }; const value = await api<Order>('/orders/', post(JSON.parse(payload), orderRequest.current.key)); setOrder(value); queries.setQueryData(['checkout-order', value.id], value); }
-  async function pay(provider: 'MOCK' | 'STRIPE_TEST') { if (!order) return; const payment = await api<Payment>(`/orders/${order.id}/payments/`, post({ provider, scenario }, `${paymentKey.current}:${provider}`)); if (payment.checkout_url) await WebBrowser.openBrowserAsync(payment.checkout_url); const value = await api<Order>(`/orders/${order.id}/`); setOrder(value); queries.setQueryData(['checkout-order', order.id], value); await queries.invalidateQueries(); }
+  async function checkout() { if (!hold) return; const payload = JSON.stringify({ reservation_id: hold.id, promotion_code: promotion }); if (orderRequest.current?.payload !== payload) orderRequest.current = { payload, key: randomUUID() }; const value = await api<Order>('/orders/', post(JSON.parse(payload), orderRequest.current.key)); setOrder(value); queries.setQueryData(['checkout-order', user?.id, value.id], value); }
+  async function pay(provider: 'MOCK' | 'STRIPE_TEST') { if (!order) return; const payment = await api<Payment>(`/orders/${order.id}/payments/`, post({ provider, scenario }, `${paymentKey.current}:${provider}`)); if (payment.checkout_url) await WebBrowser.openBrowserAsync(payment.checkout_url); const value = await api<Order>(`/orders/${order.id}/`); setOrder(value); queries.setQueryData(['checkout-order', user?.id, order.id], value); await queries.invalidateQueries(); }
   async function release() { if (hold) await api(`/reservations/${hold.id}/cancel/`, post({})); setHold(null); setOrder(null); setSeats([]); holdRequest.current = null; orderRequest.current = null; }
   if (event.isPending) return <Page title="Event"><Loading /></Page>;
   if (!event.data) return <Page title="Event"><Alert error={event.error} /></Page>;
