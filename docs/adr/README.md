@@ -4,6 +4,8 @@
 
 Accepted. JWT access stays in memory. Web refresh also stays in memory, so a browser reload requires login. Native refresh uses OS SecureStore and rotates on refresh. Tokens never enter browser storage or URLs. Password changes revoke access through password-hash checks and blacklist refresh tokens. Tenant lookups precede object disclosure; platform administration is an explicit separate capability. Admin status alone grants no organization role.
 
+Client token rotation uses a shared session generation. Login/logout invalidate older requests; late responses cannot restore credentials, disclose an earlier account's data or clear a newer account. Rotation stays shared through refresh persistence, and SecureStore writes are serialized so deletion finishes after any older write. Logout clears the local profile/cache immediately and uses any ongoing rotation only to revoke its resulting refresh on the server. Temporary network failures preserve the current session for retry; a rejected current refresh clears it. Server revocation still requires connectivity.
+
 ## ADR-002 — Money and promotions
 
 Accepted. EUR, USD and MGA are represented with two integer decimal places throughout this application's pricing contract. Amounts are immutable snapshots, with zero fees in this release. Percentage discounts round down once and allocate by cumulative integer proportions; per-admission allocations preserve exactly the order total. Stripe adapter behavior for a new currency must be reviewed rather than inferred from a browser formatter. A single event uses one currency. Cross-currency totals are not summed.

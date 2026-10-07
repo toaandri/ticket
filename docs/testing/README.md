@@ -1,5 +1,11 @@
 # Verification
 
+## Session regression validation (2026-10-05, Windows)
+
+Web: 13 tests passed (`npm test -- --run`), including logout/refresh races, account switching, obsolete response rejection, interrupted sign-in, transient outage retry, serialized refresh-storage writes and storage failure before login. Mobile: 6 tests passed (`npm test -- --watch=false`), including local logout while refresh is pending, old refresh rejection after another login and retry after a network outage. Both clients passed lint/TypeScript; the web production build and Android Hermes export passed. The shared code is exercised through real client providers and storage adapters with controlled asynchronous responses. Physical SecureStore/camera checks remain open.
+
+The mobile audit script runs on Windows via `npm.cmd`, requires an online npm report and rejects incomplete reports. It reported the same four advisory IDs with no exception changes. npm installation warned about Node 24.13.0 being below the web test dependencies' declared 24.15.0 minimum; use a supported version for future setups. This continuation did not rerun the backend or real-API browser journeys below.
+
 ## Recorded local results (2026-10-04)
 
 - Python 3.12.14 / Django 5.2.17 / PostgreSQL 16.15 / Redis 7.0.15: 58 backend tests passed. Overall statement/branch coverage baseline 84%; combined checkout, hold, payment, ticket and gate service coverage 90%. Coverage reports distinguish untested provider/network paths; the target is not a claim that every service branch is covered.

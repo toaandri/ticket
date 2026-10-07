@@ -9,3 +9,21 @@ Verified locally: 58 backend tests on PostgreSQL, 84% overall branch-enabled cov
 Final local validation passed: fresh Compose build, automatic migration, synthetic seed and healthy API/PostgreSQL/Redis/Mailpit; all three Playwright journeys passed against the Docker stack. Four separate-connection race tests passed in three repeated runs (25.37s, 25.37s, 29.17s). Fresh npm ci passed for web, mobile and API generator; schema/type regeneration matched. A PostgreSQL dump restored into a separate database preserved 3 orders, 9 tickets and 18 audit records with zero inventory mismatches. An independent GitHub clone also built, migrated and seeded with fresh volumes/signing keys; its API and database services were healthy and all three browser journeys passed (12.5s). The worker delivered eight synthetic emails into Mailpit with no failed or pending outbox entries on the first stack. GitHub Actions passed the backend, web, mobile, schema, dependency-review and browser jobs. CI keeps the history secret scan blocking; its single prose-only historical finding has an exact documented fingerprint exception. Temporary dependency-provisioning workflows have been removed. Delivery targets the main branch.
 
 Outstanding production-release gates: physical device camera/SecureStore/PDF-sharing checklist and optional external Stripe TEST integration, fixes for upstream mobile advisories, public HTTPS deployment/security review. The runnable app can be delivered without pretending those checks happened. Do not tag v1.0.0 as a fully accepted production release while they remain open.
+
+## Continuation — 2026-10-05, Windows workspace
+
+Read the progress/delivery/security logs on `origin/codex/repair-scaffold`, which points to the same commit as `origin/main` (`8fd74ba`). Fast-forwarded the clean local `main` from `b7907a2` through the fifteen existing commits before continuing. The scaffold notes in the original master specification are historical; implementation is already present on the remote branches.
+
+Reproduced two client session failures with regression tests before changing implementation: a late refresh reinstalled credentials after logout, and an old refresh rejection cleared a newly signed-in account. Added shared session generation and serialized refresh-storage handling used by both clients. Old responses cannot install tokens or return earlier-account data; logout clears local profile/cache immediately, shares any pending rotation for remote revocation and does not persist its returned credentials. Transient refresh transport errors remain retryable. Native Jest/Metro now resolve Babel helpers used by the shared package through the mobile dependency tree.
+
+Verification actually run in this workspace:
+
+- `npm ci --no-audit --no-fund` in web/mobile: both passed against the existing lockfiles. Node was 24.13.0; npm warned that some web test dependencies declare a minimum of 24.15.0. Use a supported Node version on fresh setups.
+- Web `npm test -- --run`: 13 passed, including five shared credential/storage tests and five session regression tests.
+- Mobile `npm test -- --watch=false`: 6 passed, including three new session regression tests.
+- Web/mobile `npm run lint` and `npm run typecheck`: passed.
+- Web `npm run build`: passed.
+- Mobile `node node_modules/expo/bin/cli export --platform android --output-dir dist/android`: passed; 1,338 modules bundled into an Android Hermes artifact. This is compilation evidence, not a device acceptance test.
+- `python infra/scripts/audit_mobile.py`: passed with network access, reporting all four existing advisory IDs. Fixed Windows `npm.cmd` discovery, forced online audit and rejected incomplete reports. Exceptions were not widened and vulnerable dependencies were not represented as fixed.
+
+Backend, PostgreSQL races, Docker/browser journeys and device tests were not rerun for this client-only continuation. Their earlier results remain historical evidence. Changes from this continuation are local; no push, release tag or deployment was performed. Next work: review upstream advisory fixes and fuzz native links; then perform the documented device checklist with hardware and optional Stripe TEST checks with credentials.
