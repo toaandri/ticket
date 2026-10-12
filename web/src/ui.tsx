@@ -19,7 +19,7 @@ export function Form({ title, children, onSubmit, busy = false, disabled = false
   }
   return <form className="stack" onSubmit={event => void submit(event)} aria-label={title}><h3>{title}</h3><fieldset disabled={busy || disabled}>{children}<button className="primary" type="submit">{busy ? <><span className="loading-spinner" />Please wait…</> : title}</button></fieldset></form>;
 }
-export function Field({ label, name, type = 'text', required = true, value }: { label: string; name: string; type?: string; required?: boolean; value?: string }) {
-  return <label>{label}<input name={name} type={type} required={required} defaultValue={value} min={type === 'number' ? 0 : undefined} /></label>;
+export function Field({ label, name, type = 'text', required = true, value, autoComplete }: { label: string; name: string; type?: string; required?: boolean; value?: string; autoComplete?: string }) {
+  return <label>{label}<input name={name} type={type} required={required} defaultValue={value} autoComplete={autoComplete ?? (type === "password" ? (name.toLowerCase().includes("new") ? "new-password" : "current-password") : type === "email" ? "email" : "off")} min={type === 'number' ? 0 : undefined} /></label>;
 }
 export function humanDate(value: string, zone?: string) { return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: zone }).format(new Date(value)); }
